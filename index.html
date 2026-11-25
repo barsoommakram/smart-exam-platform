@@ -54,14 +54,14 @@
         .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
 
         /* ====== الثيم الداكن وخلفية الخطوط (مطابقة لملف الفتحة) ====== */
-        body { background-color: #0b0f19 !important; color: #e2e8f0; }
+        html body:not(#_) { background-color: #0b0f19; color: #e2e8f0; }
         #indigo-lines-bg {
             position: fixed; inset: 0; width: 100vw; height: 100vh;
             pointer-events: none; z-index: 0;
         }
         header, main, footer { position: relative; z-index: 1; }
-        header { background-color: rgba(16, 24, 40, 0.94) !important; }
-        footer { background-color: rgba(16, 24, 40, 0.94) !important; }
+        html body header:not(#_) { background-color: rgba(16, 24, 40, 0.94); }
+        html body footer:not(#_) { background-color: rgba(16, 24, 40, 0.94); }
         body:not(.loaded) header, body:not(.loaded) main, body:not(.loaded) footer { opacity: 0; }
         body.loaded header, body.loaded main, body.loaded footer { opacity: 1; transition: opacity 0.9s ease; }
 
@@ -90,54 +90,54 @@
         .split-preloader.done { display: none; }
 
         /* تحويل البطاقات والعناصر الفاتحة إلى الوضع الداكن */
-        .bg-white { background-color: #101828 !important; }
-        .text-slate-900 { color: #f1f5f9 !important; }
-        .text-slate-800 { color: #e2e8f0 !important; }
-        .text-slate-700 { color: #cbd5e1 !important; }
-        .text-slate-600 { color: #94a3b8 !important; }
-        .text-slate-500 { color: #8b9bb4 !important; }
-        .text-slate-400 { color: #7d8da5 !important; }
-        .border-slate-200 { border-color: #243049 !important; }
-        .border-slate-300 { border-color: #334155 !important; }
-        .border-slate-100 { border-color: #1e293b !important; }
-        .bg-slate-50 { background-color: #0d1526 !important; }
-        .bg-slate-100 { background-color: #1a2338 !important; }
-        .bg-slate-50\/50 { background-color: rgba(13, 21, 38, 0.6) !important; }
-        .bg-slate-50\/60 { background-color: rgba(13, 21, 38, 0.65) !important; }
-        .bg-slate-100\/80 { background-color: rgba(26, 35, 56, 0.85) !important; }
-        .divide-slate-200 > * + * { border-color: #243049 !important; }
-        .hover\:bg-slate-50:hover { background-color: #16203a !important; }
-        .hover\:bg-slate-100:hover { background-color: #1a2338 !important; }
-        .hover\:bg-slate-200:hover { background-color: #243049 !important; }
-        .hover\:bg-slate-800:hover { background-color: #1e293b !important; }
-        .bg-primary-50 { background-color: rgba(79, 70, 229, 0.15) !important; }
-        .bg-primary-50\/60 { background-color: rgba(79, 70, 229, 0.12) !important; }
-        .bg-primary-100 { background-color: rgba(79, 70, 229, 0.25) !important; }
-        .border-primary-100 { border-color: rgba(99, 102, 241, 0.35) !important; }
-        .text-primary-600 { color: #818cf8 !important; }
-        .text-primary-700 { color: #a5b4fc !important; }
-        .text-primary-900 { color: #c7d2fe !important; }
-        .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.35) !important; }
-        .bg-emerald-100 { background-color: rgba(6, 78, 59, 0.5) !important; }
-        .border-emerald-200 { border-color: rgba(16, 185, 129, 0.4) !important; }
-        .text-emerald-700 { color: #34d399 !important; }
-        .text-emerald-800 { color: #34d399 !important; }
-        .hover\:bg-emerald-100:hover { background-color: rgba(6, 78, 59, 0.55) !important; }
-        .bg-rose-50 { background-color: rgba(76, 5, 25, 0.4) !important; }
-        .bg-rose-100 { background-color: rgba(76, 5, 25, 0.55) !important; }
-        .border-rose-200 { border-color: rgba(244, 63, 94, 0.4) !important; }
-        .text-rose-700 { color: #fb7185 !important; }
-        .text-rose-800 { color: #fb7185 !important; }
-        .hover\:bg-rose-50:hover { background-color: rgba(76, 5, 25, 0.45) !important; }
-        .hover\:bg-rose-100:hover { background-color: rgba(76, 5, 25, 0.6) !important; }
-        .bg-amber-50 { background-color: rgba(69, 26, 3, 0.4) !important; }
-        .bg-amber-100 { background-color: rgba(69, 26, 3, 0.55) !important; }
-        .border-amber-200 { border-color: rgba(245, 158, 11, 0.4) !important; }
-        .text-amber-700 { color: #fbbf24 !important; }
-        .text-amber-800 { color: #fbbf24 !important; }
-        .bg-amber-50\/40 { background-color: rgba(69, 26, 3, 0.3) !important; }
-        .border-primary-500\/30 { border-color: rgba(99, 102, 241, 0.45) !important; }
-        input, textarea, select { background-color: #0d1526 !important; color: #e2e8f0 !important; }
+        html body .bg-white { background-color: #101828; }
+        html body .text-slate-900 { color: #f1f5f9; }
+        html body .text-slate-800 { color: #e2e8f0; }
+        html body .text-slate-700 { color: #cbd5e1; }
+        html body .text-slate-600 { color: #94a3b8; }
+        html body .text-slate-500 { color: #8b9bb4; }
+        html body .text-slate-400 { color: #7d8da5; }
+        html body .border-slate-200 { border-color: #243049; }
+        html body .border-slate-300 { border-color: #334155; }
+        html body .border-slate-100 { border-color: #1e293b; }
+        html body .bg-slate-50 { background-color: #0d1526; }
+        html body .bg-slate-100 { background-color: #1a2338; }
+        html body .bg-slate-50\/50 { background-color: rgba(13, 21, 38, 0.6); }
+        html body .bg-slate-50\/60 { background-color: rgba(13, 21, 38, 0.65); }
+        html body .bg-slate-100\/80 { background-color: rgba(26, 35, 56, 0.85); }
+        html body .divide-slate-200 > * + * { border-color: #243049; }
+        html body .hover\:bg-slate-50:hover { background-color: #16203a; }
+        html body .hover\:bg-slate-100:hover { background-color: #1a2338; }
+        html body .hover\:bg-slate-200:hover { background-color: #243049; }
+        html body .hover\:bg-slate-800:hover { background-color: #1e293b; }
+        html body .bg-primary-50 { background-color: rgba(79, 70, 229, 0.15); }
+        html body .bg-primary-50\/60 { background-color: rgba(79, 70, 229, 0.12); }
+        html body .bg-primary-100 { background-color: rgba(79, 70, 229, 0.25); }
+        html body .border-primary-100 { border-color: rgba(99, 102, 241, 0.35); }
+        html body .text-primary-600 { color: #818cf8; }
+        html body .text-primary-700 { color: #a5b4fc; }
+        html body .text-primary-900 { color: #c7d2fe; }
+        html body .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.35); }
+        html body .bg-emerald-100 { background-color: rgba(6, 78, 59, 0.5); }
+        html body .border-emerald-200 { border-color: rgba(16, 185, 129, 0.4); }
+        html body .text-emerald-700 { color: #34d399; }
+        html body .text-emerald-800 { color: #34d399; }
+        html body .hover\:bg-emerald-100:hover { background-color: rgba(6, 78, 59, 0.55); }
+        html body .bg-rose-50 { background-color: rgba(76, 5, 25, 0.4); }
+        html body .bg-rose-100 { background-color: rgba(76, 5, 25, 0.55); }
+        html body .border-rose-200 { border-color: rgba(244, 63, 94, 0.4); }
+        html body .text-rose-700 { color: #fb7185; }
+        html body .text-rose-800 { color: #fb7185; }
+        html body .hover\:bg-rose-50:hover { background-color: rgba(76, 5, 25, 0.45); }
+        html body .hover\:bg-rose-100:hover { background-color: rgba(76, 5, 25, 0.6); }
+        html body .bg-amber-50 { background-color: rgba(69, 26, 3, 0.4); }
+        html body .bg-amber-100 { background-color: rgba(69, 26, 3, 0.55); }
+        html body .border-amber-200 { border-color: rgba(245, 158, 11, 0.4); }
+        html body .text-amber-700 { color: #fbbf24; }
+        html body .text-amber-800 { color: #fbbf24; }
+        html body .bg-amber-50\/40 { background-color: rgba(69, 26, 3, 0.3); }
+        html body .border-primary-500\/30 { border-color: rgba(99, 102, 241, 0.45); }
+        html body input:not(#_), html body textarea:not(#_), html body select:not(#_) { background-color: #0d1526; color: #e2e8f0; }
         input::placeholder, textarea::placeholder { color: #64748b; }
     </style>
 </head>
@@ -1867,8 +1867,108 @@
             });
         }
 
+
+        // =========================================================================
+        // تطبيع النص العربي + التصحيح بالكلمات المفتاحية + مؤشرات الصياغة (إشارات مساعدة وليست دليلاً)
+        // =========================================================================
+        function normalizeArabic(s) {
+            return String(s || '')
+                .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, '')   // التشكيل والتطويل
+                .replace(/[أإآٱ]/g, 'ا')                                      // أشكال الألف
+                .replace(/ى/g, 'ي')                                           // الألف المقصورة
+                .replace(/ة/g, 'ه')                                           // التاء المربوطة
+                .toLowerCase()
+                .replace(/[^\u0621-\u064Aa-z0-9\s]/g, ' ')                    // حذف العلامات غير الحرفية
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+        const AR_STOPWORDS = new Set(('في من الي الى على عن هذا هذه التي الذي مع او و ان ان كان تكون يكون كانت هو هي هم ما لا كل بعد قبل ذلك تلك الذين ثم قد لم لن حتي بين عند كما اي تم هناك هنا لكن بل اذا اذ ايضا فقط عليه عليها له لها به بها منه منها فيه فيها وفق حسب خلال').split(/\s+/).map(normalizeArabic));
+        // جذع خفيف: إزالة "ال" والحروف الملتصقة بها في البداية فقط
+        function stemToken(t) {
+            let w = t;
+            if (/^[وفبكل]ال/.test(w) && w.length > 5) w = w.slice(1);
+            if (w.startsWith('ال') && w.length > 4) w = w.slice(2);
+            else if (/^لل/.test(w) && w.length > 4) w = w.slice(2);
+            return w;
+        }
+        function keyTokens(text) {
+            return normalizeArabic(text).split(' ')
+                .filter(t => t.length >= 3 && !AR_STOPWORDS.has(t) && !/^\d+$/.test(t));
+        }
+        function tokenMatches(keyStem, ansStems) {
+            for (const a of ansStems) {
+                if (a === keyStem) return true;
+                if (keyStem.length >= 4 && a.length >= 4 && (a.startsWith(keyStem) || keyStem.startsWith(a)) && Math.abs(a.length - keyStem.length) <= 3) return true;
+            }
+            return false;
+        }
+        // يرجع النسبة والعناصر المحققة والمفقودة (الكلمات المفتاحية من نموذج الإجابة، وأثقل وزناً ما ورد في المرجع)
+        function gradeEssay(answer, q, bookText) {
+            const rawKeys = (q.modelAnswer || '').split(/\s+/);
+            const bookStems = new Set(keyTokens(bookText).map(stemToken));
+            const seen = new Map();   // الجذع -> {display, weight}
+            rawKeys.forEach(w => {
+                const nt = keyTokens(w)[0];
+                if (!nt) return;
+                const st = stemToken(nt);
+                if (st.length < 3 || seen.has(st)) return;
+                seen.set(st, { display: w.replace(/[^\u0600-\u06FFa-zA-Z0-9]/g, ''), weight: bookStems.has(st) ? 2 : 1 });
+            });
+            let keys = [...seen.entries()];
+            if (keys.length > 10) keys = keys.sort((a, b) => b[1].weight - a[1].weight).slice(0, 10);
+            const ansStems = keyTokens(answer).map(stemToken);
+            let got = 0, total = 0;
+            const matched = [], missing = [];
+            keys.forEach(([st, info]) => {
+                total += info.weight;
+                if (tokenMatches(st, ansStems)) { got += info.weight; matched.push(info.display); }
+                else missing.push(info.display);
+            });
+            const raw = total ? got / total : 0.5;
+            // الدرجة الكاملة عند تغطية 80% من العناصر (إنصاف لاختلاف الصياغة)
+            const ratio = total ? Math.min(raw / 0.8, 1) : 0.5;
+            return { ratio, raw, matched, missing, hasKeys: total > 0 };
+        }
+
+        // ===== مؤشرات الصياغة النمطية والسلوك (aiProb) =====
+        const AI_TEMPLATE_PHRASES = ['في ظل', 'الثوره الصناعيه', 'وختاما', 'في الختام', 'اولا', 'ثانيا', 'ثالثا', 'من الجدير بالذكر', 'مما لا شك فيه', 'لا يمكن اغفال', 'يمكن القول', 'بشكل عام', 'دورا محوريا', 'تلعب دورا', 'علاوه علي ذلك', 'بالاضافه الي ذلك', 'في هذا السياق', 'في عصرنا الحالي', 'ومن ناحيه اخري', 'تجدر الاشاره', 'الحوسبه السحابيه', 'الامن السيبراني'].map(normalizeArabic);
+        function analyzeWriting(text) {
+            const signals = [];
+            let score = 0;
+            const norm = normalizeArabic(text);
+            const words = norm ? norm.split(' ') : [];
+            // 1) عبارات إنشائية نمطية (عدد المختلف منها)
+            const hits = AI_TEMPLATE_PHRASES.filter(ph => (' ' + norm + ' ').includes(' ' + ph + ' '));
+            if (hits.length >= 1) { score += Math.min(hits.length, 4) * 10; signals.push(`عبارات إنشائية نمطية (${hits.length})`); }
+            // 2) تناسق أطوال الجمل
+            const sents = String(text || '').split(/[.!؟?\n]+/).map(s => s.trim().split(/\s+/).filter(Boolean).length).filter(n => n >= 4);
+            if (sents.length >= 4) {
+                const mean = sents.reduce((a, b) => a + b, 0) / sents.length;
+                const sd = Math.sqrt(sents.reduce((a, b) => a + (b - mean) ** 2, 0) / sents.length);
+                if (mean > 0 && sd / mean < 0.2) { score += 12; signals.push('تناسق غير معتاد في أطوال الجمل'); }
+            }
+            // 3) تكرار قوالب البداية والعبارات
+            const sentTexts = String(text || '').split(/[.!؟?\n]+/).map(s => normalizeArabic(s).split(' ').slice(0, 2).join(' ')).filter(s => s.split(' ').length === 2);
+            const openers = {};
+            sentTexts.forEach(s => openers[s] = (openers[s] || 0) + 1);
+            const repOpen = Object.values(openers).some(c => c >= 3);
+            const grams = {};
+            for (let i = 0; i + 4 <= words.length; i++) { const g = words.slice(i, i + 4).join(' '); grams[g] = (grams[g] || 0) + 1; }
+            const repGram = Object.values(grams).some(c => c >= 3);
+            if (repOpen || repGram) { score += 10; signals.push('تكرار قوالب إنشائية'); }
+            return { score, signals };
+        }
+
         function handleAnswerInput() {
             if (!sessionState.active) return;
+            // رصد إضافة نص كبير مفاجئة (بخلاف الكتابة المتدرجة)
+            const len = getCombinedStudentAnswersText().length;
+            const prev = sessionState.lastLen || 0;
+            if (len - prev > 80) {
+                sessionState.bigJumps = (sessionState.bigJumps || 0) + 1;
+                addTelemetryLog(`إضافة نص كبير دفعة واحدة (${len - prev} حرف).`, 'text-amber-400 font-bold');
+            }
+            sessionState.lastLen = len;
             calculateWPM();
         }
 
@@ -1979,8 +2079,7 @@
             let totalScore = 0;
             let totalMax = 0;
 
-            const aiPhrases = ['في ظل', 'الثورة الصناعية', 'وختاماً', 'أولاً:', 'ثانياً:', 'الحوسبة السحابية', 'الأمن السيبراني'];
-            let aiPhraseHits = 0;
+            const essayTexts = [];
 
             exam.questions.forEach((q, idx) => {
                 const qMax = Number(q.maxScore) || 10;
@@ -2007,38 +2106,43 @@
                 const ta = document.querySelector(`textarea.student-q-input[data-qid="${q.id}"]`);
                 const ans = ta ? ta.value.trim() : '';
 
-                // تقييم مرجعي بناءً على الكلمات المفتاحية لنموذج الإجابة والمرجع
-                const modelTokens = (q.modelAnswer + ' ' + q.text)
-                    .replace(/[^\u0600-\u06FF\s]/g, ' ')
-                    .split(/\s+/)
-                    .filter(w => w.length >= 4);
-
-                const uniqueTokens = [...new Set(modelTokens)];
-                let hits = 0;
-                uniqueTokens.forEach(tok => { if (ans.includes(tok)) hits++; });
-
-                const ratio = uniqueTokens.length ? Math.min(hits / Math.min(uniqueTokens.length, 6), 1) : 0.5;
+                // تقييم بالكلمات المفتاحية المطبّعة من نموذج الإجابة (مع وزن أعلى لما ورد في المرجع)
+                const g = gradeEssay(ans, q, exam.bookContent);
+                const ratio = g.ratio;
                 const qScore = ans ? Math.round((ratio * qMax) * 2) / 2 : 0;
                 totalScore += qScore;
+                essayTexts.push(ans);
 
-                aiPhrases.forEach(p => { if (ans.includes(p)) aiPhraseHits++; });
-
+                const fmt = arr => arr.slice(0, 6).join('، ') + (arr.length > 6 ? ' ...' : '');
+                let note = 'لم يتم الإجابة';
+                if (ans) {
+                    note = (ratio >= 0.65 ? 'مطابق لعناصر المرجع ونموذج الإجابة' : 'تغطية جزئية لعناصر المرجع');
+                    if (g.hasKeys) note += ` — تحقق: ${g.matched.length ? fmt(g.matched) : 'لا شيء'}` + (g.missing.length ? ` | ناقص: ${fmt(g.missing)}` : '');
+                }
                 qDetails.push({
                     qText: q.text.slice(0, 65),
                     score: qScore,
                     maxScore: qMax,
-                    note: ans ? (ratio >= 0.65 ? 'مطابق لعناصر المرجع ونموذج الإجابة' : 'تغطية جزئية لعناصر المرجع') : 'لم يتم الإجابة'
+                    note
                 });
             });
 
-            const aiProb = Math.min(12 + aiPhraseHits * 16 + sessionState.pasteCount * 35 + sessionState.tabSwitches * 12 + sessionState.fullscreenExits * 15 + (wpm > 95 ? 18 : 0), 98);
+            // مؤشرات الصياغة (تُحسب فقط لو النص كافٍ) + مؤشرات السلوك. إشارات مساعدة وليست دليلاً قاطعاً.
+            const essayAll = essayTexts.join('\n');
+            const essayWords = essayAll.trim() ? essayAll.trim().split(/\s+/).length : 0;
+            const writing = essayWords >= 25 ? analyzeWriting(essayAll) : { score: 0, signals: [] };
+            const bigJumps = sessionState.bigJumps || 0;
+            const speedBurst = (wpm > 70 && essayWords >= 60) ? 8 : 0;
+            const aiProb = Math.min(12 + writing.score + Math.min(bigJumps, 2) * 20 + speedBurst + sessionState.pasteCount * 35 + sessionState.tabSwitches * 12 + sessionState.fullscreenExits * 15 + (wpm > 95 ? 18 : 0), 98);
             let status = 'سليم';
             const reasons = [];
             if (sessionState.pasteCount > 0) reasons.push(`لصق (${sessionState.pasteCount})`);
             if (sessionState.tabSwitches > 0) reasons.push(`تبديل تبويب (${sessionState.tabSwitches})`);
             if (sessionState.fullscreenExits > 0) reasons.push(`خروج من ملء الشاشة (${sessionState.fullscreenExits})`);
             if (wpm > 95) reasons.push(`سرعة كتابة مرتفعة (${wpm} ك/د)`);
-            if (aiPhraseHits >= 2) reasons.push(`أنماط صياغة AI (${aiProb}%)`);
+            if (bigJumps > 0) reasons.push(`إضافة نص كبير دفعة واحدة (${bigJumps})`);
+            writing.signals.forEach(s => reasons.push(s));
+            if (writing.score >= 20) reasons.push(`أنماط صياغة مشتبهة (${aiProb}%)`);
 
             if (aiProb >= 65 || sessionState.pasteCount > 0) status = 'اشتباه مرتفع';
             else if (aiProb >= 35 || sessionState.tabSwitches > 0 || sessionState.fullscreenExits > 0) status = 'مراجعة';
@@ -2061,7 +2165,7 @@
                 tabSwitches: sessionState.tabSwitches,
                 fullscreenExits: sessionState.fullscreenExits,
                 wpm,
-                alerts: reasons.length ? reasons.join(' + ') : 'سلوك طبيعي ومتوافق مع المرجع الدراسي.',
+                alerts: reasons.length ? reasons.join(' + ') + ' — مؤشرات إرشادية وليست دليلاً قاطعاً، والقرار للدكتور.' : 'سلوك طبيعي ومتوافق مع المرجع الدراسي.',
                 gradingReason: `تم تصحيح ${exam.questions.length} أسئلة (${exam.questions.filter(q => q.type === 'mcq').length} اختيارية بتصحيح فوري) بناءً على مرجع "${exam.courseName}" ونموذج الإجابة المعتمد.`,
                 questionDetails: qDetails,
                 doctorDecision: status === 'سليم' ? 'معتمد' : 'قيد مراجعة الدكتور',
