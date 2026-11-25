@@ -339,6 +339,10 @@
             <div id="student-exam-room" class="hidden grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
                     <div>
+                        <div id="fs-notice" class="hidden mb-4 flex-wrap items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold" style="background:#3b2a05;border:1px solid #b45309;color:#fde68a">
+                            <span id="fs-notice-text">يُفضَّل أداء الامتحان في وضع ملء الشاشة. الامتحان مستمر ولن يتوقف.</span>
+                            <button type="button" onclick="reenterFullscreen()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold">إعادة ملء الشاشة</button>
+                        </div>
                         <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
                             <div>
                                 <span class="text-xs font-bold text-primary-700 bg-primary-50 px-2.5 py-1 rounded-lg" id="active-exam-badge">امتحان</span>
@@ -1195,6 +1199,36 @@
             showToast('تم إنشاء امتحان جديد — عدّل العنوان والمرجع والأسئلة ثم اعتمدها', 'success');
         }
 
+        function showConfirmModal({ title = 'تأكيد', message = '', confirmLabel = 'تأكيد', cancelLabel = 'إلغاء' } = {}) {
+            return new Promise(resolve => {
+                const ov = document.createElement('div');
+                ov.id = 'confirm-modal-overlay';
+                ov.setAttribute('role', 'dialog');
+                ov.setAttribute('aria-modal', 'true');
+                ov.dir = 'rtl';
+                ov.style.cssText = 'position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,15,.72);backdrop-filter:blur(4px)';
+                ov.innerHTML = `
+                    <div style="background:#101828;border:1px solid #1f2a44;color:#e5e7eb;border-radius:18px;max-width:420px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+                        <div style="font-weight:800;font-size:16px;color:#fff;margin-bottom:8px"></div>
+                        <div style="font-size:13px;line-height:1.8;color:#cbd5e1;margin-bottom:18px"></div>
+                        <div style="display:flex;gap:10px;justify-content:flex-start">
+                            <button type="button" data-act="ok" style="background:#e11d48;color:#fff;font-weight:700;font-size:13px;padding:9px 18px;border-radius:12px;border:0;cursor:pointer"></button>
+                            <button type="button" data-act="cancel" style="background:#0b0f19;color:#e5e7eb;font-weight:700;font-size:13px;padding:9px 18px;border-radius:12px;border:1px solid #334155;cursor:pointer"></button>
+                        </div>
+                    </div>`;
+                const card = ov.firstElementChild; const t = card.children[0], m = card.children[1];
+                t.textContent = title; m.textContent = message;
+                ov.querySelector('[data-act=ok]').textContent = confirmLabel;
+                ov.querySelector('[data-act=cancel]').textContent = cancelLabel;
+                const close = v => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(v); };
+                const onKey = e => { if (e.key === 'Escape') close(false); };
+                ov.addEventListener('click', e => { if (e.target === ov) close(false); const a = e.target.dataset && e.target.dataset.act; if (a === 'ok') close(true); if (a === 'cancel') close(false); });
+                document.addEventListener('keydown', onKey);
+                document.body.appendChild(ov);
+                ov.querySelector('[data-act=cancel]').focus();
+            });
+        }
+
         function duplicateCurrentExam() {
             syncCurrentExamFields();
             const src = getCurrentDoctorExam();
@@ -1213,7 +1247,9 @@
                 showToast('يجب الإبقاء على امتحان واحد على الأقل في المنصة', 'warning');
                 return;
             }
-            if (!confirm('هل أنت متأكد من حذف هذا الامتحان؟ لا يمكن التراجع عن الحذف.')) return;
+            const ex0 = getCurrentDoctorExam();
+            const okDel = await showConfirmModal({ title: 'حذف الامتحان', message: `هل أنت متأكد من حذف الامتحان "${ex0 ? ex0.title : ''}"؟ لا يمكن التراجع عن الحذف.`, confirmLabel: 'تأكيد الحذف', cancelLabel: 'إلغاء' });
+            if (!okDel) return;
             const removedId = currentDoctorExamId;
             exams = exams.filter(e => e.id !== currentDoctorExamId);
             currentDoctorExamId = exams[0].id;
@@ -1785,11 +1821,28 @@
                     document.documentElement.requestFullscreen().catch(() => {});
                 }
             } catch (e) {}
+            // لو المتصفح رفض ملء الشاشة تلقائياً، نعرض تنبيهاً وزراً لإعادة المحاولة (الجلسة مستمرة)
+            setTimeout(() => updateFsNotice(), 800);
             document.getElementById('telemetry-log').innerHTML = '';
             addTelemetryLog(`بدأت جلسة "${exam.title}" للطالب ${name}.`, 'text-emerald-400');
 
             clearInterval(sessionState.timerInterval);
             sessionState.timerInterval = setInterval(updateExamTimer, 1000);
+        }
+
+        function updateFsNotice() {
+            const n = document.getElementById('fs-notice');
+            if (!n) return;
+            const show = !!(sessionState.active && !document.fullscreenElement);
+            n.classList.toggle('hidden', !show);
+            n.classList.toggle('flex', show);
+        }
+        function reenterFullscreen() {
+            try {
+                const p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+                if (p && p.catch) p.catch(() => showToast('المتصفح منع ملء الشاشة. جرّب الضغط على F11 أو اسمح به من إعدادات المتصفح.', 'warning'));
+            } catch (e) {}
+            setTimeout(updateFsNotice, 400);
         }
 
         function cancelExamSession() {
@@ -1878,6 +1931,7 @@
                     addTelemetryLog('الخروج من وضع ملء الشاشة أثناء الامتحان.', 'text-rose-400 font-bold');
                     updateTelemetryUI();
                 }
+                updateFsNotice();
             });
         }
 
@@ -2523,6 +2577,7 @@
                     }
                 }).catch(() => {});
                 // الاشتراك الحي في النتائج (للدكتور فقط بحسب قواعد الأمان)
+                if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
                 resultsUnsub = onSnapshot(collection(fbDb, 'results'), (snap) => {
                     examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
                     examRecords.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
