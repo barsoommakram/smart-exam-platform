@@ -2158,6 +2158,10 @@
         }
 
 
+        function withTimeout(promise, ms) {
+            return Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+        }
+
         // الطالب يرسل إجاباته الخام فقط. الدرجة الرسمية تُحسب في صفحة الدكتور.
         async function submitExam(force) {
             if (sessionState.submitting) return;
@@ -2239,8 +2243,9 @@
                 showToast('تعذر تسليم الإجابات (تحقق من الإنترنت). إجاباتك ما زالت محفوظة، اضغط تسليم مرة أخرى.', 'danger');
                 return;
             }
-            try { if (uid && typeof window.fbMakeTicket === 'function') await window.fbMakeTicket(exam.id, subId, uid); } catch (e) { console.warn('ticket failed', e); }
-            try { if (typeof window.fbSetAttempt === 'function') await window.fbSetAttempt(subId, { examId: exam.id, studentId: sessionState.studentId, createdAtMs: Date.now() }); } catch (e) {}
+            let ticketOk = true, attemptOk = true;
+            try { if (uid && typeof window.fbMakeTicket === 'function') await withTimeout(window.fbMakeTicket(exam.id, subId, uid), 10000); } catch (e) { ticketOk = false; console.warn('ticket failed', e); }
+            try { if (typeof window.fbSetAttempt === 'function') await withTimeout(window.fbSetAttempt(subId, { examId: exam.id, studentId: sessionState.studentId, createdAtMs: Date.now() }), 10000); } catch (e) { attemptOk = false; console.warn('attempt failed', e); }
 
             // عرض الدرجة فوراً للطالب (إن فعّل الدكتور ذلك) باستخدام مفاتيح الكشف بعد التسليم. الدرجة الرسمية يحسبها الدكتور.
             let local = null;
@@ -2255,7 +2260,7 @@
                     scoreWhy = 'تعذر إنشاء جلسة الطالب المجهولة (فعّل Anonymous في Firebase Authentication)';
                 } else {
                     try {
-                        const reveal = await window.fbGetReveal(exam.id);
+                        const reveal = await withTimeout(window.fbGetReveal(exam.id), 10000);
                         if (!reveal || !reveal.q) scoreWhy = 'مستند كشف الإجابات غير موجود (يحتاج الدكتور أن يفتح لوحة الدكتور مرة أو يحفظ الامتحان)';
                         else {
                             const g = gradeQuestions(exam, answers, q => reveal.q[q.id] || null);
@@ -2273,15 +2278,73 @@
 
             if (isDoctorLoggedIn && typeof processPendingSubmissions === 'function') setTimeout(processPendingSubmissions, 800);
             showToast(`تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.` + (exam.showScoreToStudent && local ? ` درجتك: ${local.totalScore} من ${local.totalMax}` : ''), 'success');
-            if (exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
+            if (!attemptOk) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تسجيل المحاولة (الإنترنت ضعيف). لا تعيد الامتحان، وأبلغ الدكتور لو ظهرت أي مشكلة.', 'warning'), 400);
+            if (!ticketOk && exam.showScoreToStudent) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
+            if (ticketOk && exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
         }
 
         // ===== تصحيح الدكتور: يحوّل التسليم الخام إلى سجل نتيجة (نفس شكل السجلات القديمة) =====
-        function buildResultRecord(exam, sub) {
+        // ===== تصحيح المقالي بالذكاء الاصطناعي (اختياري) =====
+        // ضع هنا رابط الـ proxy الخاص بك (يستقبل POST JSON ويرجع { score, feedback }). لا تضع أي مفتاح سري في هذا الملف.
+        // فارغ = لا يتم أي اتصال، ويُستخدم التصحيح المحلي فقط.
+        const AI_GRADE_ENDPOINT = 'https://quiet-queen-1715.barsoommakramsapet.workers.dev';
+        const AI_GRADE_TIMEOUT_MS = 20000;
+        let aiGradeDownUntil = 0;
+        // يرجع { score, feedback } أو null عند الفشل (والمستدعي يرجع للتصحيح المحلي تلقائياً)
+        async function gradeEssayWithAI(q, studentAnswer, bookContent) {
+            if (!AI_GRADE_ENDPOINT || Date.now() < aiGradeDownUntil) return null;
+            const maxScore = Number(q.maxScore) || 10;
+            const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (e) {} }, AI_GRADE_TIMEOUT_MS);
+            try {
+                const res = await fetch(AI_GRADE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: String(q.text || ''),
+                        modelAnswer: String(q.modelAnswer || ''),
+                        bookContent: String(bookContent || ''),
+                        studentAnswer: String(studentAnswer || ''),
+                        maxScore: maxScore
+                    }),
+                    signal: ctrl ? ctrl.signal : undefined
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const raw = Number(data && data.score);
+                if (!isFinite(raw)) throw new Error('bad score');
+                const score = Math.round(Math.max(0, Math.min(raw, maxScore)) * 2) / 2;
+                const feedback = (data && typeof data.feedback === 'string') ? data.feedback.trim().slice(0, 400) : '';
+                return { score, feedback };
+            } catch (e) {
+                console.warn('AI grading unavailable, using local grading', e);
+                aiGradeDownUntil = Date.now() + 60000; // بعد فشل: لا نكرر المحاولة لمدة دقيقة (يستمر التصحيح المحلي)
+                return null;
+            } finally { clearTimeout(timer); }
+        }
+
+        async function buildResultRecord(exam, sub) {
             const answers = sub.answers || {};
             const g = gradeQuestions(exam, answers, q => q.type === 'mcq'
                 ? { t: 'mcq', c: (typeof q.correctIndex === 'number' ? q.correctIndex : 0) }
                 : { t: 'essay', keys: buildEssayKeys(q, exam.bookContent) });
+            let aiUsed = 0;
+            if (AI_GRADE_ENDPOINT) {
+                for (let i = 0; i < exam.questions.length; i++) {
+                    const q = exam.questions[i];
+                    if (q.type === 'mcq') continue;
+                    const ans = (typeof answers[q.id] === 'string' ? answers[q.id] : '').trim();
+                    const qd = g.qDetails[i];
+                    if (!ans || !qd) continue;
+                    const r = await gradeEssayWithAI(q, ans, exam.bookContent);
+                    if (!r) continue;
+                    g.totalScore += r.score - qd.score;
+                    qd.score = r.score;
+                    qd.note = 'تصحيح AI' + (r.feedback ? ': ' + r.feedback : '');
+                    qd.ai = true;
+                    aiUsed++;
+                }
+            }
             const pasteCount = Number(sub.pasteCount) || 0, tabSwitches = Number(sub.tabSwitches) || 0, fullscreenExits = Number(sub.fullscreenExits) || 0;
             const wpm = Number(sub.wpm) || 0, bigJumps = Number(sub.bigJumps) || 0;
 
@@ -2318,7 +2381,7 @@
                 fullscreenExits,
                 wpm,
                 alerts: reasons.length ? reasons.join(' + ') + ' — مؤشرات إرشادية وليست دليلاً قاطعاً، والقرار للدكتور.' : 'سلوك طبيعي ومتوافق مع المرجع الدراسي.',
-                gradingReason: `تم تصحيح ${exam.questions.length} أسئلة (${exam.questions.filter(q => q.type === 'mcq').length} اختيارية بتصحيح فوري) بناءً على مرجع "${exam.courseName}" ونموذج الإجابة المعتمد.`,
+                gradingReason: `تم تصحيح ${exam.questions.length} أسئلة (${exam.questions.filter(q => q.type === 'mcq').length} اختيارية بتصحيح فوري` + (aiUsed ? `، ${aiUsed} مقالي بالذكاء الاصطناعي` : '') + `) بناءً على مرجع "${exam.courseName}" ونموذج الإجابة المعتمد.`,
                 questionDetails: g.qDetails,
                 doctorDecision: status === 'سليم' ? 'معتمد' : 'قيد مراجعة الدكتور',
                 createdAtMs: Number(sub.createdAtMs) || Date.now()
@@ -2340,7 +2403,7 @@
                         continue;
                     }
                     let rec;
-                    try { rec = buildResultRecord(exam, sub); } catch (e) { console.error('grading failed', e); continue; }
+                    try { rec = await buildResultRecord(exam, sub); } catch (e) { console.error('grading failed', e); continue; }
                     try { await window.fbCommitResult(sub._id, rec); done++; } catch (e) { console.warn('commit failed', e); }
                 }
             } finally { procBusy = false; }
