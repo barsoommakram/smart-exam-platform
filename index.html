@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -480,8 +481,8 @@
                         </div>
                         <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1">
                             <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                            <span>رفع .txt</span>
-                            <input type="file" accept=".txt" class="hidden" onchange="handleBookUpload(event)">
+                            <span>رفع PDF</span>
+                            <input type="file" accept=".pdf,application/pdf,.txt,text/plain" class="hidden" onchange="handleBookUpload(event)">
                         </label>
                     </div>
 
@@ -504,15 +505,11 @@
                         <div>
                             <div class="text-xs font-extrabold text-slate-800 mb-0.5">فترة الاختبار (وقت الدخول)</div>
                             <p class="text-[11px] text-slate-500 mb-2">الطالب يقدر يدخل الامتحان جوه الفترة دي بس. سيبها فاضية لو الامتحان مفتوح دايماً.</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">من</label>
-                                    <input type="datetime-local" id="doc-start-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">إلى</label>
-                                    <input type="datetime-local" id="doc-end-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
-                                </div>
+                            <input type="hidden" id="doc-start-time"><input type="hidden" id="doc-end-time">
+                            <div class="space-y-3">
+                                <div class="dt-row" data-dt="start"></div>
+                                <div class="dt-row" data-dt="end"></div>
+                                <div id="period-summary" class="text-xs font-bold leading-relaxed rounded-xl bg-primary-50/60 border border-primary-100 text-primary-900 p-3">الامتحان مفتوح في أي وقت.</div>
                             </div>
                         </div>
                         <div class="border-t border-slate-100 pt-3">
@@ -844,6 +841,7 @@
 
         window.onload = function () {
             loadState();
+            buildPeriodUI();
             lucide.createIcons();
             updateDoctorAuthUI();
             populateStudentExamSelector();
@@ -1017,6 +1015,99 @@
             return exams.find(e => e.id === currentDoctorExamId) || exams[0];
         }
 
+
+        // ===== فترة الاختبار: حقول يوم/شهر/سنة/وقت قابلة للكتابة + ملخص مقروء =====
+        const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+        const DT_CLS = 'rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-center focus:ring-2 focus:ring-primary-500 outline-none';
+        function buildPeriodUI() {
+            document.querySelectorAll('.dt-row').forEach(row => {
+                const k = row.dataset.dt;
+                const yNow = new Date().getFullYear();
+                row.innerHTML = `
+                    <div class="text-xs font-bold text-slate-700 mb-1">${k === 'start' ? 'من (بداية السماح بالدخول)' : 'إلى (نهاية السماح بالدخول)'}</div>
+                    <div class="flex flex-wrap items-center gap-1.5" dir="rtl">
+                        <input type="number" inputmode="numeric" min="1" max="31" placeholder="يوم" data-f="d" class="${DT_CLS} w-16">
+                        <select data-f="m" class="${DT_CLS} w-24"><option value="">الشهر</option>${AR_MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>
+                        <input type="number" inputmode="numeric" min="2000" max="2100" placeholder="سنة" data-f="y" class="${DT_CLS} w-20">
+                        <span class="text-slate-400 text-xs">الساعة</span>
+                        <input type="number" inputmode="numeric" min="1" max="12" placeholder="ساعة" data-f="h" class="${DT_CLS} w-14">
+                        <span class="text-slate-400">:</span>
+                        <input type="number" inputmode="numeric" min="0" max="59" placeholder="دقيقة" data-f="mi" class="${DT_CLS} w-14">
+                        <select data-f="ap" class="${DT_CLS} w-16"><option value="AM">ص</option><option value="PM">م</option></select>
+                        <button type="button" data-f="today" class="text-[11px] font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg px-2 py-1.5">اليوم</button>
+                        <button type="button" data-f="y-1" class="text-[11px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg px-2 py-1.5">+شهر</button>
+                        <button type="button" data-f="clear" class="text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg px-2 py-1.5">مسح</button>
+                    </div>`;
+                row.addEventListener('input', () => periodFieldsChanged(k));
+                row.addEventListener('change', () => periodFieldsChanged(k));
+                row.addEventListener('click', ev => {
+                    const f = ev.target.dataset && ev.target.dataset.f;
+                    if (f === 'today') {
+                        const n = new Date();
+                        setPeriodUI(k, `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}T${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`);
+                        periodFieldsChanged(k);
+                    } else if (f === 'y-1') {
+                        const cur = document.getElementById(k === 'start' ? 'doc-start-time' : 'doc-end-time').value;
+                        const d = cur ? new Date(cur) : new Date();
+                        d.setMonth(d.getMonth() + 1);
+                        const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        setPeriodUI(k, z);
+                        periodFieldsChanged(k);
+                    } else if (f === 'clear') {
+                        setPeriodUI(k, '');
+                        periodFieldsChanged(k);
+                    }
+                });
+            });
+        }
+        function periodRow(k) { return document.querySelector(`.dt-row[data-dt="${k}"]`); }
+        function setPeriodUI(k, val) {
+            const row = periodRow(k); if (!row) return;
+            const q = f => row.querySelector(`[data-f="${f}"]`);
+            document.getElementById(k === 'start' ? 'doc-start-time' : 'doc-end-time').value = val || '';
+            if (!val) { ['d', 'm', 'y', 'h', 'mi'].forEach(f => q(f).value = ''); q('ap').value = 'AM'; return; }
+            const [date, time] = val.split('T');
+            const [Y, M, D] = date.split('-').map(Number);
+            const [H, MI] = (time || '00:00').split(':').map(Number);
+            q('d').value = D; q('m').value = M; q('y').value = Y;
+            q('ap').value = H >= 12 ? 'PM' : 'AM';
+            q('h').value = (H % 12) || 12; q('mi').value = String(MI).padStart(2, '0');
+        }
+        function periodFieldsChanged(k) {
+            const row = periodRow(k);
+            const q = f => row.querySelector(`[data-f="${f}"]`);
+            const D = parseInt(q('d').value, 10), M = parseInt(q('m').value, 10), Y = parseInt(q('y').value, 10);
+            let val = '';
+            if (D && M && Y && String(Y).length === 4) {
+                const test = new Date(Y, M - 1, D);
+                if (test.getFullYear() === Y && test.getMonth() === M - 1 && test.getDate() === D) {
+                    let h = parseInt(q('h').value, 10), mi = parseInt(q('mi').value, 10);
+                    if (isNaN(h)) { h = k === 'start' ? 12 : 11; if (q('h').value === '') { q('ap').value = k === 'start' ? 'AM' : 'PM'; } }
+                    if (isNaN(mi)) mi = k === 'start' ? 0 : 59;
+                    h = Math.min(Math.max(h, 1), 12); mi = Math.min(Math.max(mi, 0), 59);
+                    let H24 = h % 12; if (q('ap').value === 'PM') H24 += 12;
+                    val = `${Y}-${String(M).padStart(2, '0')}-${String(D).padStart(2, '0')}T${String(H24).padStart(2, '0')}:${String(mi).padStart(2, '0')}`;
+                }
+            }
+            document.getElementById(k === 'start' ? 'doc-start-time' : 'doc-end-time').value = val;
+            syncCurrentExamFields();
+            updatePeriodSummary();
+        }
+        function updatePeriodSummary() {
+            const box = document.getElementById('period-summary'); if (!box) return;
+            const s = document.getElementById('doc-start-time').value, e = document.getElementById('doc-end-time').value;
+            const fmt = v => new Date(v).toLocaleString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+            box.className = 'text-xs font-bold leading-relaxed rounded-xl border p-3 bg-primary-50/60 border-primary-100 text-primary-900';
+            if (!s && !e) { box.textContent = 'الامتحان مفتوح في أي وقت (لم تحدد فترة).'; return; }
+            if (s && e && new Date(e) <= new Date(s)) { box.className = 'text-xs font-bold leading-relaxed rounded-xl border p-3 bg-rose-50 border-rose-200 text-rose-700'; box.textContent = 'تنبيه: نهاية الفترة قبل بدايتها، راجع التواريخ.'; return; }
+            box.textContent = 'فترة الاختبار: ' + (s ? 'من ' + fmt(s) : 'من أي وقت') + (e ? ' إلى ' + fmt(e) : ' بدون وقت نهاية');
+        }
+        function refreshPeriodUI() {
+            setPeriodUI('start', document.getElementById('doc-start-time').value);
+            setPeriodUI('end', document.getElementById('doc-end-time').value);
+            updatePeriodSummary();
+        }
+
         function populateDoctorWorkspace() {
             const exam = getCurrentDoctorExam();
             renderDoctorExamPills();
@@ -1032,6 +1123,7 @@
             document.getElementById('doc-shuffle-o').checked = !!exam.shuffleOptions;
             document.getElementById('doc-show-score').checked = !!exam.showScoreToStudent;
             document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || '';
+            refreshPeriodUI();
             renderDoctorQuestionsList();
             document.getElementById('btn-delete-exam').style.display = exams.length > 1 ? 'inline-flex' : 'none';
             lucide.createIcons();
@@ -1131,16 +1223,82 @@
             showToast('تم حذف الامتحان المحدد', 'info');
         }
 
-        function handleBookUpload(event) {
-            const file = event.target.files[0];
+        async function extractPdfText(file) {
+            if (typeof pdfjsLib === 'undefined') throw new Error('NO_LIB');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const buf = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+            const pages = [];
+            for (let n = 1; n <= pdf.numPages; n++) {
+                const page = await pdf.getPage(n);
+                const tc = await page.getTextContent();
+                const its = tc.items.filter(it => 'str' in it && it.transform);
+                const isVisual = its.some(it => /[\uFB50-\uFDFF\uFE70-\uFEFF]/.test(it.str));
+                const hasAr = s => /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(s);
+                // تجميع العناصر في أسطر حسب الارتفاع
+                const rows = [];
+                its.forEach(it => {
+                    const y = it.transform[5];
+                    let r = rows.find(r => Math.abs(r.y - y) <= 3);
+                    if (!r) { r = { y, items: [] }; rows.push(r); }
+                    r.items.push(it);
+                });
+                rows.sort((a, b) => b.y - a.y);
+                const lines = rows.map(r => {
+                    let arr = r.items;
+                    if (isVisual) arr = arr.slice().sort((a, b) => a.transform[4] - b.transform[4]);
+                    let out = '', prevEnd = null;
+                    arr.forEach(it => {
+                        const x = it.transform[4], fs = Math.abs(it.transform[0]) || 10;
+                        if (isVisual) {
+                            if (prevEnd !== null && x - prevEnd > fs * 0.18 && !out.endsWith(' ')) out += ' ';
+                            out += it.str;
+                            prevEnd = x + (it.width || 0);
+                        } else {
+                            out += (out && it.str && !out.endsWith(' ') ? ' ' : '') + it.str;
+                        }
+                    });
+                    if (isVisual && hasAr(out)) {
+                        // النص مخزَّن بترتيب بصري (يسار لليمين): نعكسه إلى الترتيب المنطقي
+                        out = Array.from(out).reverse().join('')
+                            .replace(/[A-Za-z0-9][A-Za-z0-9.,:%\/+\-]*/g, m => Array.from(m).reverse().join(''))
+                            .replace(/[()\[\]]/g, c => ({'(': ')', ')': '(', '[': ']', ']': '['}[c]));
+                    }
+                    return out.normalize('NFKC');
+                });
+                pages.push(lines.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n'));
+            }
+            return { text: pages.join('\n\n').trim(), pageCount: pdf.numPages };
+        }
+
+        async function handleBookUpload(event) {
+            const input = event.target;
+            const file = input.files[0];
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                document.getElementById('doc-book-content').value = e.target.result;
+            const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+            const done = (text, msg) => {
+                document.getElementById('doc-book-content').value = text;
                 syncCurrentExamFields();
-                showToast(`تم تحميل المرجع من (${file.name}) بنجاح`, 'success');
+                showToast(msg, 'success');
             };
-            reader.readAsText(file);
+            if (isPdf) {
+                showToast('جاري قراءة ملف الـ PDF ...', 'info');
+                try {
+                    const { text, pageCount } = await extractPdfText(file);
+                    if (text.replace(/\s/g, '').length < 30) {
+                        showToast('الـ PDF ده مفيهوش نص قابل للقراءة (غالباً صور أو ممسوح ضوئياً). ارفع نسخة نصية أو الصق النص يدوياً في خانة المرجع.', 'warning');
+                    } else {
+                        done(text, `تم استخراج النص من (${file.name}) — ${pageCount} صفحة. راجع النص قبل الاعتماد، فبعض ملفات PDF العربية قد يتغير ترتيب كلماتها.`);
+                    }
+                } catch (err) {
+                    showToast(err && err.message === 'NO_LIB' ? 'تعذر تحميل أداة قراءة PDF — تأكد من الإنترنت وحاول مجدداً' : 'تعذر قراءة ملف الـ PDF (قد يكون تالفاً أو محمياً بكلمة سر).', 'danger');
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = e => done(e.target.result, `تم تحميل المرجع من (${file.name}) بنجاح`);
+                reader.readAsText(file);
+            }
+            input.value = '';
         }
 
         function escapeHtml(s) {
