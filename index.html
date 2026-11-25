@@ -1131,6 +1131,22 @@
             updatePeriodSummary();
         }
 
+        // عند خروج الدكتور: امسح المفاتيح من الذاكرة والتخزين المحلي وفرّغ واجهة المحرر
+        function wipeDoctorEditor() {
+            try {
+                exams.forEach(ex => {
+                    ex.bookContent = '';
+                    (ex.questions || []).forEach(q => { delete q.correctIndex; delete q.modelAnswer; });
+                    ex._noKeys = true;
+                });
+                if (exams.length) localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(exams));
+            } catch (e) {}
+            ['doc-course-name','doc-exam-title','doc-book-content','doc-access-code','doc-start-time','doc-end-time','doc-duration','doc-instructions','doc-notify-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            ['doc-shuffle-q','doc-shuffle-o','doc-show-score'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+            const ql = document.getElementById('doctor-questions-list'); if (ql) ql.innerHTML = '';
+            const pl = document.getElementById('doctor-exams-pills'); if (pl) pl.innerHTML = '';
+        }
+
         function populateDoctorWorkspace() {
             const exam = getCurrentDoctorExam();
             renderDoctorExamPills();
@@ -2196,8 +2212,12 @@
                 durationSec,
                 createdAtMs: Date.now()
             };
-            const uid = (typeof window.fbCurrentAnonUid === 'function') ? window.fbCurrentAnonUid() : null;
+            let uid = (typeof window.fbCurrentAnonUid === 'function') ? window.fbCurrentAnonUid() : null;
+            if (!uid && !isDoctorLoggedIn && typeof window.fbEnsureAnon === 'function') {
+                try { await window.fbEnsureAnon(); uid = window.fbCurrentAnonUid(); } catch (e) {}
+            }
             if (uid) sub.uid = uid;
+            let scoreWhy = '';
 
             let saved = false;
             try {
@@ -2224,14 +2244,25 @@
 
             // عرض الدرجة فوراً للطالب (إن فعّل الدكتور ذلك) باستخدام مفاتيح الكشف بعد التسليم. الدرجة الرسمية يحسبها الدكتور.
             let local = null;
-            if (exam.showScoreToStudent && uid && typeof window.fbGetReveal === 'function') {
-                try {
-                    const reveal = await window.fbGetReveal(exam.id);
-                    if (reveal && reveal.q) {
-                        const g = gradeQuestions(exam, answers, q => reveal.q[q.id] || null);
+            if (exam.showScoreToStudent) {
+                if (isDoctorLoggedIn) {
+                    // معاينة الدكتور: المفاتيح موجودة عنده محلياً
+                    try {
+                        const g = gradeQuestions(exam, answers, q => q.type === 'mcq' ? { t: 'mcq', c: (typeof q.correctIndex === 'number' ? q.correctIndex : 0) } : { t: 'essay', keys: buildEssayKeys(q, exam.bookContent) });
                         if (g.ok) local = g;
-                    }
-                } catch (e) { console.warn('reveal failed', e); }
+                    } catch (e) { console.warn('local preview failed', e); }
+                } else if (!uid) {
+                    scoreWhy = 'تعذر إنشاء جلسة الطالب المجهولة (فعّل Anonymous في Firebase Authentication)';
+                } else {
+                    try {
+                        const reveal = await window.fbGetReveal(exam.id);
+                        if (!reveal || !reveal.q) scoreWhy = 'مستند كشف الإجابات غير موجود (يحتاج الدكتور أن يفتح لوحة الدكتور مرة أو يحفظ الامتحان)';
+                        else {
+                            const g = gradeQuestions(exam, answers, q => reveal.q[q.id] || null);
+                            if (g.ok) local = g; else scoreWhy = 'مستند الكشف لا يطابق أسئلة الامتحان (أعد حفظ الامتحان)';
+                        }
+                    } catch (e) { console.warn('reveal failed', e); scoreWhy = 'تعذر قراءة مستند الكشف (' + ((e && e.code) || 'error') + ')، تأكد من نشر القواعد الأخيرة وأن التذكرة اتسجلت'; }
+                }
             }
 
             sessionState.submitting = false;
@@ -2242,6 +2273,7 @@
 
             if (isDoctorLoggedIn && typeof processPendingSubmissions === 'function') setTimeout(processPendingSubmissions, 800);
             showToast(`تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.` + (exam.showScoreToStudent && local ? ` درجتك: ${local.totalScore} من ${local.totalMax}` : ''), 'success');
+            if (exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
         }
 
         // ===== تصحيح الدكتور: يحوّل التسليم الخام إلى سجل نتيجة (نفس شكل السجلات القديمة) =====
@@ -2990,6 +3022,7 @@
                 examRecords = [];
                 window.__resultsReady = false;
                 renderExcelTable();
+                wipeDoctorEditor();
                 switchTab('student');
             }
         });
@@ -3033,6 +3066,14 @@
                     }
                 }
                 window.__keysReady = true;
+                // إصلاح ذاتي: امتحان فيه إظهار الدرجة ومفاتيحه موجودة لكن مستند الكشف ناقص
+                for (const ex of exams) {
+                    if (!ex.showScoreToStudent || ex._noKeys || toMigrate.has(ex.id)) continue;
+                    try {
+                        const rs = await getDoc(doc(fbDb, 'examReveal', ex.id));
+                        if (!rs.exists()) { const sp = splitExamForStorage(ex); if (sp.reveal) await setDoc(doc(fbDb, 'examReveal', ex.id), sp.reveal); }
+                    } catch (e) { console.warn('reveal heal failed', ex.id, e); }
+                }
                 let migrated = 0;
                 for (const id of Array.from(toMigrate)) {
                     const ex = exams.find(e => e.id === id);
