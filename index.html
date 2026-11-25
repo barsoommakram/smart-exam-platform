@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -10,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         tailwind.config = {
@@ -624,7 +626,7 @@
                         <input type="email" id="doc-notify-email" placeholder="doctor@example.com" class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         <button type="button" onclick="saveDoctorNotifyEmail()" class="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-5 py-2 rounded-xl transition">حفظ</button>
                     </div>
-                    <p class="text-[11px] text-slate-500 mt-2">يُحفظ في قاعدة البيانات ويظهر من أي جهاز. زر "إرسال للإيميل" في صفحة النتائج يحمّل الإكسيل ويفتح رسالة جاهزة لهذا الإيميل.</p>
+                    <p class="text-[11px] text-slate-500 mt-2">يُحفظ في قاعدة البيانات ويظهر من أي جهاز. زر "إرسال للإيميل" في صفحة النتائج يرسل ملخص النتائج (نص) لهذا الإيميل تلقائياً. الإكسيل غير مرفق، حمّله من زر التصدير. لو فشل الإرسال يتم فتح رسالة جاهزة كبديل.</p>
                 </div>
             </div>
         </section>
@@ -2477,7 +2479,46 @@
             } else showToast('تم الحفظ على هذا الجهاز', 'info');
         }
 
-        function emailExcelToDoctor() {
+        const EMAILJS_CFG = { serviceId: 'service_ork7qaa', templateId: 'template_pl43uxn', publicKey: 'gWx5wMDQGDS4vU3V9' };
+
+        function buildResultsEmailText(list) {
+            const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
+            const exams = [...new Set(list.map(r => r.examTitle).filter(Boolean))];
+            const lines = [];
+            lines.push('ملخص نتائج الامتحان - المنصة الذكية للتقييم');
+            lines.push('الامتحان: ' + (exams.join(' ، ') || '-'));
+            lines.push('عدد الطلاب: ' + list.length);
+            lines.push('متوسط الدرجات: ' + avg + '%');
+            lines.push('(مؤشرات النزاهة والذكاء الاصطناعي إرشادية وليست دليلاً قاطعاً)');
+            lines.push('------------------------------');
+            list.forEach((r, i) => {
+                const pct = r.maxScore ? Math.round(r.score / r.maxScore * 100) : 0;
+                lines.push((i + 1) + ') ' + (r.name || '-') + ' | الرقم الجامعي: ' + (r.id || '-'));
+                lines.push('   الدرجة: ' + r.score + ' من ' + r.maxScore + ' (' + pct + '%) | النزاهة: ' + (r.status || '-') + ' | احتمال AI: ' + (r.aiProb || 0) + '%');
+                const flags = [];
+                if (r.pasteCount) flags.push('لصق ' + r.pasteCount + ' مرة');
+                if (r.tabSwitches) flags.push('مغادرة التبويب ' + r.tabSwitches + ' مرة');
+                if (r.fullscreenExits) flags.push('خروج من ملء الشاشة ' + r.fullscreenExits + ' مرة');
+                if (r.doctorDecision) flags.push('قرار الدكتور: ' + r.doctorDecision);
+                if (flags.length) lines.push('   أهم الملاحظات: ' + flags.join(' ، '));
+            });
+            lines.push('------------------------------');
+            lines.push('ملف الإكسيل الكامل غير مرفق بهذه الرسالة، حمّله من زر "تصدير شيت Excel" في المنصة.');
+            let text = lines.join('\n');
+            if (text.length > 40000) text = text.slice(0, 40000) + '\n... (تم اختصار الرسالة لطولها، راجع الإكسيل للتفاصيل الكاملة)';
+            return text;
+        }
+
+        function mailtoFallback(to, list) {
+            const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
+            const subject = encodeURIComponent('نتائج الامتحان - المنصة الذكية');
+            const body = encodeURIComponent(`عدد التسليمات: ${list.length}\nمتوسط الدرجات: ${avg}%\n\nملف الإكسيل تم تحميله على جهازك، أرفقه بهذه الرسالة قبل الإرسال.`);
+            exportToExcel();
+            setTimeout(() => { window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`; }, 700);
+        }
+
+        let emailSending = false;
+        async function emailExcelToDoctor() {
             const to = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
             if (!to) {
                 showToast('اكتب إيميل الدكتور أولاً في تبويب الإيميل المستقبل', 'warning');
@@ -2486,11 +2527,33 @@
             }
             const list = getFilteredRecords();
             if (!list.length) { showToast('لا توجد نتائج لإرسالها', 'warning'); return; }
-            exportToExcel();
-            const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
-            const subject = encodeURIComponent('نتائج الامتحان - المنصة الذكية');
-            const body = encodeURIComponent(`عدد التسليمات: ${list.length}\nمتوسط الدرجات: ${avg}%\n\nملف الإكسيل تم تحميله على جهازك، أرفقه بهذه الرسالة قبل الإرسال.`);
-            setTimeout(() => { window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`; }, 700);
+            if (emailSending) return;
+            const cfgOk = EMAILJS_CFG.serviceId && EMAILJS_CFG.templateId && EMAILJS_CFG.publicKey;
+            if (!cfgOk || typeof emailjs === 'undefined' || !emailjs.send) {
+                showToast('الإرسال التلقائي غير متاح الآن — هيتم فتح برنامج الإيميل وتحميل الإكسيل بدلاً منه', 'warning');
+                mailtoFallback(to, list);
+                return;
+            }
+            emailSending = true;
+            showToast('جاري إرسال ملخص النتائج على الإيميل...', 'info');
+            try {
+                const now = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+                await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
+                    subject: 'نتائج الامتحان - المنصة الذكية للتقييم',
+                    to_email: to,
+                    message: buildResultsEmailText(list),
+                    name: 'المنصة الذكية للتقييم',
+                    time: now
+                }, { publicKey: EMAILJS_CFG.publicKey });
+                showToast('تم إرسال ملخص النتائج على ' + to + ' ✓ (الإكسيل غير مرفق، حمّله من زر تصدير شيت Excel)', 'success');
+            } catch (err) {
+                console.error('EmailJS failed', err);
+                const why = err && (err.text || err.message) ? ' (' + String(err.text || err.message).slice(0, 80) + ')' : '';
+                showToast('فشل الإرسال التلقائي' + why + ' — هيتم تحميل الإكسيل وفتح برنامج الإيميل بدلاً منه', 'danger');
+                mailtoFallback(to, list);
+            } finally {
+                emailSending = false;
+            }
         }
 
         function exportToExcel() {
