@@ -962,6 +962,7 @@
                 populateReportFilter();
                 renderExcelTable();
             }
+            if (isDoctorLoggedIn && tabName !== 'student') { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
             lucide.createIcons();
         }
 
@@ -2948,8 +2949,17 @@
             isDoctorLoggedIn = !!user;
             window.doctorEmail = user ? (user.email || 'الدكتور') : '';
             updateDoctorAuthUI();
+            const firstAuthEvent = !window.__authInit;
+            window.__authInit = true;
             if (user) {
                 populateDoctorWorkspace();
+                // عند تحديث الصفحة والدكتور مسجّل دخوله: يبقى في جهة الدكتور (آخر تبويب، والنتائج افتراضياً)
+                if (firstAuthEvent && !(sessionState && sessionState.active)) {
+                    let last = 'reports';
+                    try { last = localStorage.getItem('doctor_last_tab_v1') || 'reports'; } catch (e) {}
+                    if (!['doctor', 'email', 'reports'].includes(last)) last = 'reports';
+                    switchTab(last);
+                }
                 doctorSyncKeys();
                 getDoc(doc(fbDb, 'settings', 'doctor')).then(s => {
                     if (s.exists() && typeof s.data().notifyEmail === 'string') {
