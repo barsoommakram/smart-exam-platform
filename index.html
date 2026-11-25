@@ -537,6 +537,7 @@
                             <p class="text-[11px] text-slate-500 mb-2">عد تنازلي بعد ما الطالب يبدأ، والتسليم تلقائي عند انتهائها (حتى لو الفترة خلصت). فاضية = بدون مدة.</p>
                             <input type="number" min="0" id="doc-duration" oninput="syncCurrentExamFields()" placeholder="مثال: 30" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
+                        <div id="autosend-info"></div>
                     </section>
 
                     <!-- ٣) الخيارات -->
@@ -1117,6 +1118,7 @@
             const box = document.getElementById('period-summary'); if (!box) return;
             const s = document.getElementById('doc-start-time').value, e = document.getElementById('doc-end-time').value;
             const fmt = v => new Date(v).toLocaleString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+            updateAutoSendInfo();
             box.className = 'text-xs font-bold leading-relaxed rounded-xl border p-3 bg-primary-50/60 border-primary-100 text-primary-900';
             if (!s && !e) { box.textContent = 'الامتحان مفتوح في أي وقت (لم تحدد فترة).'; return; }
             if (s && e && new Date(e) <= new Date(s)) { box.className = 'text-xs font-bold leading-relaxed rounded-xl border p-3 bg-rose-50 border-rose-200 text-rose-700'; box.textContent = 'تنبيه: نهاية الفترة قبل بدايتها، راجع التواريخ.'; return; }
@@ -1177,6 +1179,7 @@
             exam.startTime = document.getElementById('doc-start-time').value || '';
             exam.endTime = document.getElementById('doc-end-time').value || '';
             exam.durationMin = Math.max(0, parseInt(document.getElementById('doc-duration').value, 10) || 0);
+            if (typeof updateAutoSendInfo === 'function') updateAutoSendInfo();
             exam.instructions = document.getElementById('doc-instructions').value;
             exam.shuffleQuestions = document.getElementById('doc-shuffle-q').checked;
             exam.shuffleOptions = document.getElementById('doc-shuffle-o').checked;
@@ -2565,6 +2568,21 @@
         }
 
         let emailSending = false;
+        function emailjsReady() {
+            return !!(EMAILJS_CFG.serviceId && EMAILJS_CFG.templateId && EMAILJS_CFG.publicKey && typeof emailjs !== 'undefined' && emailjs.send);
+        }
+        // الإرسال الفعلي (يرمي خطأ لو فشل)
+        async function sendResultsEmailCore(to, list, subject) {
+            const now = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+            return emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
+                subject: subject || 'نتائج الامتحان - المنصة الذكية للتقييم',
+                to_email: to,
+                message: buildResultsEmailText(list),
+                message_html: buildResultsEmailHtml(list),
+                name: 'المنصة الذكية للتقييم',
+                time: now
+            }, { publicKey: EMAILJS_CFG.publicKey });
+        }
         async function emailExcelToDoctor() {
             const to = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
             if (!to) {
@@ -2575,8 +2593,7 @@
             const list = getFilteredRecords();
             if (!list.length) { showToast('لا توجد نتائج لإرسالها', 'warning'); return; }
             if (emailSending) return;
-            const cfgOk = EMAILJS_CFG.serviceId && EMAILJS_CFG.templateId && EMAILJS_CFG.publicKey;
-            if (!cfgOk || typeof emailjs === 'undefined' || !emailjs.send) {
+            if (!emailjsReady()) {
                 showToast('الإرسال التلقائي غير متاح الآن — هيتم فتح برنامج الإيميل وتحميل الإكسيل بدلاً منه', 'warning');
                 mailtoFallback(to, list);
                 return;
@@ -2584,15 +2601,7 @@
             emailSending = true;
             showToast('جاري إرسال ملخص النتائج على الإيميل...', 'info');
             try {
-                const now = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
-                await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
-                    subject: 'نتائج الامتحان - المنصة الذكية للتقييم',
-                    to_email: to,
-                    message: buildResultsEmailText(list),
-                    message_html: buildResultsEmailHtml(list),
-                    name: 'المنصة الذكية للتقييم',
-                    time: now
-                }, { publicKey: EMAILJS_CFG.publicKey });
+                await sendResultsEmailCore(to, list);
                 showToast('تم إرسال ملخص النتائج على ' + to + ' ✓ (الإكسيل غير مرفق، حمّله من زر تصدير شيت Excel)', 'success');
             } catch (err) {
                 console.error('EmailJS failed', err);
@@ -2601,6 +2610,62 @@
                 mailtoFallback(to, list);
             } finally {
                 emailSending = false;
+            }
+        }
+
+        // ===== الإرسال التلقائي المجدول لكل امتحان =====
+        // وقت الإرسال = نهاية فترة الاختبار + مدة الامتحان. الامتحان بدون نهاية فترة أو بدون مدة = إرسال يدوي فقط.
+        function getAutoSendAtMs(ex) {
+            if (!ex || !ex.endTime) return null;
+            const dur = Number(ex.durationMin) || 0;
+            if (dur <= 0) return null;
+            const end = new Date(ex.endTime).getTime();
+            if (isNaN(end)) return null;
+            return end + dur * 60000;
+        }
+        const autoSendLocalDone = new Set();
+        let autoSendBusy = false;
+        async function autoSendTick() {
+            if (autoSendBusy || !isDoctorLoggedIn || !window.__resultsReady) return;
+            if (typeof window.fbClaimAutoSend !== 'function') return;
+            autoSendBusy = true;
+            try {
+                for (const ex of exams) {
+                    const at = getAutoSendAtMs(ex);
+                    if (at === null || Date.now() < at || autoSendLocalDone.has(ex.id)) continue;
+                    const list = examRecords.filter(r => r.examId === ex.id);
+                    if (!list.length) continue; // مفيش نتائج، مفيش حاجة تتبعت
+                    const to = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
+                    if (!to) { if (!window.__autoNoEmailWarned) { window.__autoNoEmailWarned = true; showToast('الإرسال التلقائي للنتائج متوقف: اكتب إيميل الدكتور في تبويب الإيميل المستقبل', 'warning'); } continue; }
+                    if (!emailjsReady()) continue;
+                    let claim;
+                    try { claim = await window.fbClaimAutoSend(ex.id, at); } catch (e) { console.warn('autosend claim failed', e); continue; }
+                    if (claim === 'already') { autoSendLocalDone.add(ex.id); continue; }
+                    if (claim !== 'claimed') continue;
+                    try {
+                        await sendResultsEmailCore(to, list, 'نتائج امتحان: ' + (ex.title || ex.id));
+                        autoSendLocalDone.add(ex.id);
+                        try { await window.fbMarkAutoSent(ex.id, list.length); } catch (e) {}
+                        showToast('تم إرسال نتائج "' + (ex.title || '') + '" (' + list.length + ' طالب) تلقائياً على ' + to, 'success');
+                    } catch (err) {
+                        console.error('auto send failed', err);
+                        try { await window.fbReleaseAutoSend(ex.id); } catch (e) {}
+                        showToast('فشل الإرسال التلقائي لنتائج "' + (ex.title || '') + '" — هتتم المحاولة مرة تانية، أو ابعتها يدوياً', 'danger');
+                    }
+                }
+            } finally { autoSendBusy = false; }
+        }
+        setInterval(autoSendTick, 30000);
+
+        function updateAutoSendInfo() {
+            const box = document.getElementById('autosend-info'); if (!box) return;
+            const ex = getCurrentDoctorExam();
+            const at = getAutoSendAtMs(ex);
+            box.className = 'text-xs font-bold leading-relaxed rounded-xl border p-3 mt-3 bg-primary-50/60 border-primary-100 text-primary-900';
+            if (at === null) {
+                box.textContent = 'إرسال النتائج بالإيميل: يدوي فقط (لتفعيل الإرسال التلقائي حدد نهاية للفترة ومدة للامتحان).';
+            } else {
+                box.textContent = 'إرسال النتائج بالإيميل تلقائياً مرة واحدة عند: ' + new Date(at).toLocaleString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }) + ' (نهاية الفترة + مدة الامتحان). يشترط أن تكون صفحة الدكتور مفتوحة؛ ولو فتحتها بعد الميعاد يتم الإرسال فور الفتح.';
             }
         }
 
@@ -2742,7 +2807,7 @@
         // =========================================================================
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCoyMdAycrkpD54iG98Oh7wp2W-15aiyOg",
@@ -2797,10 +2862,13 @@
                     examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
                     examRecords.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
                     renderExcelTable();
+                    window.__resultsReady = true;
+                    if (typeof autoSendTick === 'function') autoSendTick();
                 }, (err) => console.warn('تعذر الاشتراك في النتائج', err));
             } else {
                 if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
                 examRecords = [];
+                window.__resultsReady = false;
                 renderExcelTable();
                 switchTab('student');
             }
@@ -2817,6 +2885,20 @@
         window.fbGetAttempt = async (attemptId) => { const s = await getDoc(doc(fbDb, 'attempts', attemptId)); return s.exists(); };
         window.fbSetAttempt = (attemptId, data) => setDoc(doc(fbDb, 'attempts', attemptId), data);
         window.fbSaveSettings = (data) => setDoc(doc(fbDb, 'settings', 'doctor'), data, { merge: true });
+        // علامة "تم الإرسال" لكل امتحان: مستند settings/autosend_<examId>، يُحجز داخل transaction فلا يتكرر الإرسال من تابين أو إعادة فتح
+        window.fbClaimAutoSend = (examId, sendAtMs) => runTransaction(fbDb, async (tx) => {
+            const ref = doc(fbDb, 'settings', 'autosend_' + examId);
+            const s = await tx.get(ref);
+            if (s.exists()) {
+                const d = s.data();
+                const stale = d.status === 'sending' && (Date.now() - (d.claimedAtMs || 0)) > 10 * 60000;
+                if (!stale) return 'already';
+            }
+            tx.set(ref, { examId: examId, status: 'sending', claimedAtMs: Date.now(), sendAtMs: sendAtMs });
+            return 'claimed';
+        });
+        window.fbMarkAutoSent = (examId, count) => setDoc(doc(fbDb, 'settings', 'autosend_' + examId), { examId: examId, status: 'sent', sentAtMs: Date.now(), count: count }, { merge: true });
+        window.fbReleaseAutoSend = (examId) => deleteDoc(doc(fbDb, 'settings', 'autosend_' + examId));
         window.fbDeleteAttempt = (attemptId) => deleteDoc(doc(fbDb, 'attempts', attemptId));
     </script>
 </body>
