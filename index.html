@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2509,6 +2508,39 @@
             return text;
         }
 
+        function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+        function buildResultsEmailHtml(list) {
+            const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
+            const exams = [...new Set(list.map(r => r.examTitle).filter(Boolean))];
+            const th = 'style="border:1px solid #94a3b8;background:#1e293b;color:#ffffff;padding:6px 8px;text-align:right;font-size:13px"';
+            const td = 'style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;font-size:13px"';
+            const head = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;text-align:right">'
+                + '<h3 style="margin:0 0 6px">ملخص نتائج الامتحان - المنصة الذكية للتقييم</h3>'
+                + '<p style="margin:2px 0">الامتحان: ' + escHtml(exams.join(' ، ') || '-') + '</p>'
+                + '<p style="margin:2px 0">عدد الطلاب: ' + list.length + ' | متوسط الدرجات: ' + avg + '%</p>'
+                + '<p style="margin:2px 0 8px;color:#64748b;font-size:12px">مؤشرات النزاهة والذكاء الاصطناعي إرشادية وليست دليلاً قاطعاً. يمكنك تحديد الجدول ونسخه ولصقه في Excel.</p>'
+                + '<table dir="rtl" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%"><thead><tr>'
+                + ['م', 'اسم الطالب', 'الرقم الجامعي', 'الفرقة / الشعبة', 'الدرجة', 'حالة النزاهة', 'احتمال AI', 'ملاحظات'].map(h => '<th ' + th + '>' + h + '</th>').join('')
+                + '</tr></thead><tbody>';
+            const foot = '</tbody></table><p style="margin:8px 0 0;color:#64748b;font-size:12px">ملف الإكسيل الكامل غير مرفق بالرسالة، حمّله من زر "تصدير شيت Excel" في المنصة.</p></div>';
+            let rows = '';
+            let used = head.length + foot.length;
+            let cut = 0;
+            list.forEach((r, i) => {
+                const flags = [];
+                if (r.pasteCount) flags.push('لصق ' + r.pasteCount);
+                if (r.tabSwitches) flags.push('مغادرة التبويب ' + r.tabSwitches);
+                if (r.fullscreenExits) flags.push('خروج ملء الشاشة ' + r.fullscreenExits);
+                if (r.doctorDecision) flags.push('قرار الدكتور: ' + r.doctorDecision);
+                const row = '<tr><td ' + td + '>' + (i + 1) + '</td><td ' + td + '>' + escHtml(r.name) + '</td><td ' + td + '>' + escHtml(r.id) + '</td><td ' + td + '>' + escHtml(r.group || '-') + '</td><td ' + td + '>' + escHtml(r.score) + ' / ' + escHtml(r.maxScore) + '</td><td ' + td + '>' + escHtml(r.status || '-') + '</td><td ' + td + '>' + escHtml((r.aiProb || 0) + '%') + '</td><td ' + td + '>' + escHtml(flags.join(' ، ') || '-') + '</td></tr>';
+                if (used + row.length > 44000) { cut++; return; }
+                used += row.length; rows += row;
+            });
+            if (cut) rows += '<tr><td colspan="8" ' + td + '>... تم اختصار ' + cut + ' صف لطول الرسالة، راجع الإكسيل للقائمة الكاملة</td></tr>';
+            return head + rows + foot;
+        }
+
         function mailtoFallback(to, list) {
             const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
             const subject = encodeURIComponent('نتائج الامتحان - المنصة الذكية');
@@ -2542,6 +2574,7 @@
                     subject: 'نتائج الامتحان - المنصة الذكية للتقييم',
                     to_email: to,
                     message: buildResultsEmailText(list),
+                    message_html: buildResultsEmailHtml(list),
                     name: 'المنصة الذكية للتقييم',
                     time: now
                 }, { publicKey: EMAILJS_CFG.publicKey });
