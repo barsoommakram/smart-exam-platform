@@ -1227,7 +1227,7 @@
             if (typeof pdfjsLib === 'undefined') throw new Error('NO_LIB');
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
             const buf = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+            const pdf = await pdfjsLib.getDocument({ data: buf, isEvalSupported: false }).promise;
             const pages = [];
             for (let n = 1; n <= pdf.numPages; n++) {
                 const page = await pdf.getPage(n);
