@@ -34,6 +34,16 @@
         }
     </script>
     <style>
+        #score-overlay{position:fixed;inset:0;z-index:100;background:rgba(7,10,22,.92);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:5vh 16px 0;overflow:hidden}
+        #score-overlay.hidden{display:none}
+        #score-overlay .so-fall{position:absolute;top:-12vh;font-size:28px;pointer-events:none;animation:so-fall linear infinite;will-change:transform}
+        @keyframes so-fall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(120vh) rotate(360deg)}}
+        @media (prefers-reduced-motion: reduce){#score-overlay .so-fall{display:none}}
+        #score-overlay .so-panel{position:relative;z-index:2;width:100%;max-width:420px;background:#111a33;border:1px solid rgba(129,140,248,.5);border-radius:18px;padding:18px 20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+        #score-overlay .so-line{font-size:20px;font-weight:800;color:#fff;margin:8px 0}
+        #score-overlay .so-note{font-size:13px;color:#a5b4fc;margin-top:10px}
+        #score-overlay .so-close{position:relative;z-index:2;margin-top:18px;background:#4f46e5;color:#fff;font-weight:700;border-radius:12px;padding:10px 28px;border:0;cursor:pointer}
+
         body {
             font-family: 'Cairo', sans-serif;
             background-color: #f8fafc;
@@ -286,6 +296,16 @@
     </div>
 
     <!-- الإشعارات -->
+    <div id="score-overlay" class="hidden" role="dialog" aria-modal="true" dir="rtl">
+        <div class="so-panel">
+            <div style="font-size:30px">🎉</div>
+            <div class="so-title" style="color:#fff;font-weight:800;font-size:17px;margin-top:4px">تم تسليم الامتحان بنجاح</div>
+            <div id="so-mcq" class="so-line hidden"></div>
+            <div id="so-essay" class="so-line hidden"></div>
+            <div id="so-note" class="so-note"></div>
+        </div>
+        <button type="button" class="so-close" onclick="closeScoreOverlay()">رجوع</button>
+    </div>
     <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
     <!-- المحتوى الرئيسي -->
@@ -2163,6 +2183,28 @@
         }
 
         // الطالب يرسل إجاباته الخام فقط. الدرجة الرسمية تُحسب في صفحة الدكتور.
+        function closeScoreOverlay() { const o = document.getElementById('score-overlay'); o.classList.add('hidden'); o.querySelectorAll('.so-fall').forEach(n => n.remove()); }
+        function showScoreOverlay(d) {
+            const o = document.getElementById('score-overlay');
+            const fmt = n => String(Math.round(Number(n) * 100) / 100);
+            const m = document.getElementById('so-mcq'), e = document.getElementById('so-essay');
+            m.classList.toggle('hidden', !(d.mM > 0)); e.classList.toggle('hidden', !(d.eM > 0));
+            if (d.mM > 0) m.textContent = 'الاختياري: ' + fmt(d.mS) + ' / ' + fmt(d.mM);
+            if (d.eM > 0) e.textContent = 'المقالي (مبدئي): ' + fmt(d.eS) + ' / ' + fmt(d.eM);
+            document.getElementById('so-note').textContent = 'الدرجة النهائية يعتمدها الدكتور.';
+            o.querySelectorAll('.so-fall').forEach(n => n.remove());
+            const em = ['🎊', '🎉', '🎈'];
+            for (let i = 0; i < 28; i++) {
+                const sp = document.createElement('span');
+                sp.className = 'so-fall'; sp.textContent = em[i % 3];
+                sp.style.left = (Math.random() * 96) + '%';
+                sp.style.animationDuration = (4 + Math.random() * 5) + 's';
+                sp.style.animationDelay = (-Math.random() * 6) + 's';
+                sp.style.fontSize = (22 + Math.random() * 20) + 'px';
+                o.appendChild(sp);
+            }
+            o.classList.remove('hidden');
+        }
         async function submitExam(force) {
             if (sessionState.submitting) return;
             const textareas = Array.from(document.querySelectorAll('.student-q-input'));
@@ -2277,7 +2319,17 @@
             document.getElementById('student-id').value = '';
 
             if (isDoctorLoggedIn && typeof processPendingSubmissions === 'function') setTimeout(processPendingSubmissions, 800);
-            showToast(`تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.` + (exam.showScoreToStudent && local ? ` درجتك: ${local.totalScore} من ${local.totalMax}` : ''), 'success');
+            let scoreMsg = ''; let overlayData = null;
+            if (exam.showScoreToStudent && local) {
+                let mS = 0, mM = 0, eS = 0, eM = 0;
+                exam.questions.forEach((q, qi) => {
+                    const d = local.qDetails[qi]; if (!d) return;
+                    if (q.type === 'mcq') { mS += d.score; mM += d.maxScore; } else { eS += d.score; eM += d.maxScore; }
+                });
+                overlayData = { mS, mM, eS, eM };
+            }
+            showToast(`تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.`, 'success');
+            if (overlayData) showScoreOverlay(overlayData);
             if (!attemptOk) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تسجيل المحاولة (الإنترنت ضعيف). لا تعيد الامتحان، وأبلغ الدكتور لو ظهرت أي مشكلة.', 'warning'), 400);
             if (!ticketOk && exam.showScoreToStudent) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
             if (ticketOk && exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
