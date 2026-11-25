@@ -467,15 +467,15 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <!-- المرجع العلمي وبيانات الامتحان (5 أعمدة) -->
-                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <div class="bg-emerald-100 text-emerald-700 p-2 rounded-lg">
                                 <i data-lucide="database" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-900 text-sm sm:text-base">بيانات الامتحان والمرجع العلمي</h3>
-                                <p class="text-[11px] text-slate-500">المرجع الأساسي للتصحيح وتوليد الأسئلة</p>
+                                <h3 class="font-bold text-slate-900 text-sm sm:text-base">إعداد الامتحان</h3>
+                                <p class="text-[11px] text-slate-500">البيانات والوقت والخيارات</p>
                             </div>
                         </div>
                         <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1">
@@ -485,53 +485,71 @@
                         </label>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">اسم المقرر الدراسي</label>
-                        <input type="text" id="doc-course-name" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">عنوان الامتحان (يظهر للطلاب عند الاختيار)</label>
-                        <input type="text" id="doc-exam-title" oninput="syncCurrentExamFields(); renderDoctorExamPills();" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">كود دخول الامتحان (اتركه فارغاً بدون كود)</label>
-                        <input type="text" id="doc-access-code" oninput="syncCurrentExamFields()" placeholder="مثال: DT2026" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- ١) المعلومات الأساسية -->
+                    <section class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                        <h4 class="text-sm font-extrabold text-primary-900 flex items-center gap-2"><span class="bg-primary-100 text-primary-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">١</span> المعلومات الأساسية</h4>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">وقت بداية الامتحان</label>
-                            <input type="datetime-local" id="doc-start-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">اسم المقرر الدراسي</label>
+                            <input type="text" id="doc-course-name" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">وقت نهاية الامتحان</label>
-                            <input type="datetime-local" id="doc-end-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">عنوان الامتحان (يظهر للطلاب عند الاختيار)</label>
+                            <input type="text" id="doc-exam-title" oninput="syncCurrentExamFields(); renderDoctorExamPills();" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
-                    </div>
-                    <p class="text-[11px] text-slate-500">اترك وقتي البداية والنهاية فارغين ليبقى الامتحان متاحاً دائماً.</p>
+                    </section>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">مدة الامتحان بالدقائق (يُسلَّم تلقائياً عند انتهائها)</label>
-                        <input type="number" min="0" id="doc-duration" oninput="syncCurrentExamFields()" placeholder="مثال: 30 (اتركه فارغاً بدون مدة)" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    </div>
+                    <!-- ٢) الفترة والمدة -->
+                    <section class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                        <h4 class="text-sm font-extrabold text-primary-900 flex items-center gap-2"><span class="bg-primary-100 text-primary-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">٢</span> الفترة والمدة</h4>
+                        <div>
+                            <div class="text-xs font-extrabold text-slate-800 mb-0.5">فترة الاختبار (وقت الدخول)</div>
+                            <p class="text-[11px] text-slate-500 mb-2">الطالب يقدر يدخل الامتحان جوه الفترة دي بس. سيبها فاضية لو الامتحان مفتوح دايماً.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">من</label>
+                                    <input type="datetime-local" id="doc-start-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">إلى</label>
+                                    <input type="datetime-local" id="doc-end-time" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-primary-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-100 pt-3">
+                            <label class="text-xs font-extrabold text-slate-800 block mb-0.5">مدة الامتحان بالدقائق</label>
+                            <p class="text-[11px] text-slate-500 mb-2">عد تنازلي بعد ما الطالب يبدأ، والتسليم تلقائي عند انتهائها (حتى لو الفترة خلصت). فاضية = بدون مدة.</p>
+                            <input type="number" min="0" id="doc-duration" oninput="syncCurrentExamFields()" placeholder="مثال: 30" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                    </section>
 
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">تعليمات الامتحان (تظهر للطالب قبل البدء وأثناء الامتحان)</label>
-                        <textarea id="doc-instructions" rows="3" oninput="syncCurrentExamFields()" placeholder="مثال: ممنوع فتح أي تبويب آخر. الإجابة بالعربي. التسليم تلقائي عند انتهاء الوقت." class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
-                    </div>
+                    <!-- ٣) الخيارات -->
+                    <section class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                        <h4 class="text-sm font-extrabold text-primary-900 flex items-center gap-2"><span class="bg-primary-100 text-primary-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-xs">٣</span> خيارات الامتحان</h4>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">تعليمات للطالب (تظهر قبل البدء وأثناء الامتحان)</label>
+                            <textarea id="doc-instructions" rows="2" oninput="syncCurrentExamFields()" placeholder="مثال: ممنوع فتح أي تبويب آخر." class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-q" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب الأسئلة عشوائي لكل طالب</label>
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-o" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب خيارات الاختيار من متعدد عشوائي</label>
+                            <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-show-score" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> إظهار الدرجة للطالب بعد التسليم</label>
+                        </div>
+                    </section>
 
-                    <div class="grid grid-cols-1 gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-q" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب الأسئلة عشوائي لكل طالب</label>
-                        <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-o" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب خيارات الاختيار من متعدد عشوائي</label>
-                        <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-show-score" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> إظهار الدرجة للطالب بعد التسليم</label>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">نص الكتاب الدراسي / المرجع العلمي</label>
-                        <textarea id="doc-book-content" rows="10" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 p-3.5 text-xs sm:text-sm leading-relaxed focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50/60" placeholder="اكتب أو الصق فقرات من الكتاب الدراسي هنا لتوليد أسئلة وتصحيح إجابات الطلاب..."></textarea>
-                    </div>
+                    <!-- إعدادات متقدمة (مطوية) -->
+                    <details id="doc-advanced" class="rounded-2xl border border-slate-200 p-4 group">
+                        <summary class="cursor-pointer text-sm font-extrabold text-slate-800 select-none">إعدادات متقدمة (كود الدخول والمرجع العلمي)</summary>
+                        <div class="space-y-3 mt-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">كود دخول الامتحان (اتركه فارغاً بدون كود)</label>
+                                <input type="text" id="doc-access-code" oninput="syncCurrentExamFields()" placeholder="مثال: DT2026" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">نص الكتاب الدراسي / المرجع العلمي (يُستخدم لتوليد الأسئلة وللتصحيح)</label>
+                                <textarea id="doc-book-content" rows="10" oninput="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 p-3.5 text-xs sm:text-sm leading-relaxed focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50/60" placeholder="اكتب أو الصق فقرات من الكتاب الدراسي هنا لتوليد أسئلة وتصحيح إجابات الطلاب..."></textarea>
+                            </div>
+                        </div>
+                    </details>
                 </div>
 
                 <!-- بنك أسئلة الامتحان وتوليد الأسئلة التلقائي (7 أعمدة) -->
@@ -1466,11 +1484,11 @@
             let extra = '';
             if (ex.startTime || ex.endTime) {
                 extra += `<span class="text-slate-300">|</span>
-                <span class="font-bold text-primary-900">متاح:</span> <span>${ex.startTime ? 'من ' + fmtT(ex.startTime) : 'أي وقت'} ${ex.endTime ? 'حتى ' + fmtT(ex.endTime) : ''}</span>`;
+                <span class="font-bold text-primary-900">فترة الاختبار (الدخول):</span> <span>${ex.startTime ? 'من ' + fmtT(ex.startTime) : 'أي وقت'} ${ex.endTime ? 'إلى ' + fmtT(ex.endTime) : ''}</span>`;
             }
             if (ex.durationMin > 0) {
                 extra += `<span class="text-slate-300">|</span>
-                <span class="font-bold text-primary-900">المدة:</span> <span>${ex.durationMin} دقيقة</span>`;
+                <span class="font-bold text-primary-900">مدة الامتحان:</span> <span>${ex.durationMin} دقيقة</span>`;
             }
             if (ex.accessCode) {
                 extra += `<span class="text-slate-300">|</span>
@@ -1505,11 +1523,11 @@
             // نافذة وقت الامتحان التي حددها الدكتور
             const nowD = new Date();
             if (exam.startTime && nowD < new Date(exam.startTime)) {
-                showToast(`الامتحان لم يبدأ بعد — يبدأ ${new Date(exam.startTime).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}`, 'warning');
+                showToast(`الدخول للامتحان غير متاح الآن، فترة الاختبار تبدأ ${new Date(exam.startTime).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })}`, 'warning');
                 return;
             }
             if (exam.endTime && nowD > new Date(exam.endTime)) {
-                showToast('انتهى وقت هذا الامتحان ولم يعد متاحاً', 'danger');
+                showToast('انتهت فترة الاختبار ولم يعد الدخول للامتحان متاحاً', 'danger');
                 return;
             }
 
