@@ -36,15 +36,32 @@
         }
     </script>
     <style>
-        #score-overlay{position:fixed;inset:0;z-index:100;background:rgba(7,10,22,.92);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:5vh 16px 0;overflow:hidden}
+        #score-overlay{position:fixed;inset:0;z-index:100;background:rgba(7,10,22,.985);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4vh 16px 24px;overflow-y:auto}
         #score-overlay.hidden{display:none}
-        #score-overlay .so-fall{position:absolute;top:-12vh;font-size:28px;pointer-events:none;animation:so-fall linear infinite;will-change:transform}
-        @keyframes so-fall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(120vh) rotate(360deg)}}
-        @media (prefers-reduced-motion: reduce){#score-overlay .so-fall{display:none}}
-        #score-overlay .so-panel{position:relative;z-index:2;width:100%;max-width:420px;background:#111a33;border:1px solid rgba(129,140,248,.5);border-radius:18px;padding:18px 20px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-        #score-overlay .so-line{font-size:20px;font-weight:800;color:#fff;margin:8px 0}
-        #score-overlay .so-note{font-size:13px;color:#a5b4fc;margin-top:10px}
-        #score-overlay .so-close{position:relative;z-index:2;margin-top:18px;background:#4f46e5;color:#fff;font-weight:700;border-radius:12px;padding:10px 28px;border:0;cursor:pointer}
+        #score-overlay .so-wrap{position:relative;width:min(78vw,320px);aspect-ratio:1;flex:0 0 auto}
+        #score-overlay .so-svg{width:100%;height:100%;filter:drop-shadow(0 0 4px rgba(34,211,238,.75))}
+        #score-overlay .so-c{fill:rgba(11,15,25,.7);stroke:#22d3ee;stroke-width:3}
+        #score-overlay .so-svg .tr{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1}
+        #score-overlay .so-svg .nd{opacity:0;fill:#67e8f9}
+        #score-overlay.so-done .so-svg .tr{animation:so-draw .9s cubic-bezier(.65,0,.35,1) forwards}
+        #score-overlay.so-done .so-svg .nd{animation:so-nd .3s .8s forwards}
+        #score-overlay.so-wait .so-svg .tr{stroke-dashoffset:.45;animation:so-pulse 1.3s ease-in-out infinite alternate}
+        #score-overlay.so-wait .so-c{stroke-dasharray:14 10;transform-box:fill-box;transform-origin:center;animation:so-spin 3.5s linear infinite}
+        @keyframes so-draw{to{stroke-dashoffset:0}}
+        @keyframes so-nd{to{opacity:1}}
+        @keyframes so-pulse{from{opacity:.35}to{opacity:1}}
+        @keyframes so-spin{to{transform:rotate(360deg)}}
+        @media (prefers-reduced-motion: reduce){#score-overlay .so-svg .tr,#score-overlay .so-svg .nd,#score-overlay .so-c{animation:none!important}#score-overlay.so-done .so-svg .tr{stroke-dashoffset:0}#score-overlay.so-done .so-svg .nd{opacity:1}#score-overlay.so-wait .so-svg .tr{stroke-dashoffset:0;opacity:.6}}
+        #score-overlay .so-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 22%}
+        #so-score{font-size:30px;font-weight:800;color:#67e8f9;text-shadow:0 0 12px rgba(34,211,238,.85);direction:ltr;line-height:1.2}
+        #so-sub{font-size:12px;font-weight:700;color:#34d399;text-shadow:0 0 8px rgba(52,211,153,.6);margin-top:4px}
+        #score-overlay .so-break{font-size:13px;font-weight:700;color:#cbd5e1;margin-top:6px;text-align:center}
+        #score-overlay .so-note{font-size:12px;color:#a5b4fc;margin-top:8px;text-align:center}
+        #score-overlay .so-review{width:100%;max-width:460px;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+        #score-overlay .so-review.hidden{display:none}
+        #score-overlay .so-row{background:#0f172a;border:1px solid rgba(34,211,238,.25);border-radius:12px;padding:10px 12px;font-size:12px;color:#e2e8f0;line-height:1.7;text-align:right}
+        #score-overlay .so-row b.ok{color:#34d399}#score-overlay .so-row b.no{color:#fb7185}#score-overlay .so-row b.mid{color:#fbbf24}
+        #score-overlay .so-close{margin-top:18px;background:#4f46e5;color:#fff;font-weight:700;border-radius:12px;padding:10px 28px;border:0;cursor:pointer;flex:0 0 auto}
 
         body {
             font-family: 'Cairo', sans-serif;
@@ -306,7 +323,7 @@
         </div>
     </div>
 
-    <!-- نافذة تعديل درجات الأسئلة يدوياً (قرار الدكتور) -->
+    <!-- نافذة عرض الأسئلة وتصحيح الدرجة (قرار الدكتور) -->
     <div id="grade-edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
         <div class="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto custom-scroll">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -315,32 +332,32 @@
                         <i data-lucide="pencil-ruler" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h3 class="font-extrabold text-slate-900 text-base">تعديل درجات الأسئلة يدوياً</h3>
+                        <h3 class="font-extrabold text-slate-900 text-base">عرض الأسئلة وتصحيح الدرجة</h3>
                         <p class="text-xs text-slate-500" id="grade-edit-student">-</p>
                     </div>
                 </div>
-                <button onclick="closeGradeEditor()" class="text-slate-400 hover:text-slate-700 p-1">
+                <button onclick="cancelGradeEditor()" class="text-slate-400 hover:text-slate-700 p-1">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             <div id="grade-edit-rows" class="space-y-3"></div>
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                <button type="button" onclick="closeGradeEditor()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">إلغاء</button>
-                <button type="button" onclick="saveGradeOverrides()" class="bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">حفظ التعديلات وتحديث السجل</button>
+                <button type="button" onclick="cancelGradeEditor()" class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">إلغاء</button>
+                <button type="button" onclick="saveGradeOverrides()" class="bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">تأكيد وحفظ التعديلات وتحديث السجل</button>
             </div>
         </div>
     </div>
 
     <!-- الإشعارات -->
     <div id="score-overlay" class="hidden" role="dialog" aria-modal="true" dir="rtl">
-        <div class="so-panel">
-            <div style="font-size:30px">🎉</div>
-            <div class="so-title" style="color:#fff;font-weight:800;font-size:17px;margin-top:4px">تم تسليم الامتحان بنجاح</div>
-            <div id="so-mcq" class="so-line hidden"></div>
-            <div id="so-essay" class="so-line hidden"></div>
-            <div id="so-note" class="so-note"></div>
+        <div class="so-wrap">
+            <svg id="so-svg" class="so-svg" viewBox="-160 -160 320 320" aria-hidden="true"></svg>
+            <div class="so-center"><div id="so-score"></div><div id="so-sub"></div></div>
         </div>
-        <button type="button" class="so-close" onclick="closeScoreOverlay()">رجوع</button>
+        <div id="so-break" class="so-break"></div>
+        <div id="so-review" class="so-review hidden"></div>
+        <div id="so-note" class="so-note"></div>
+        <button type="button" id="so-close" class="so-close" onclick="closeScoreOverlay()">رجوع</button>
     </div>
     <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
@@ -813,6 +830,7 @@
                             <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-q" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب الأسئلة عشوائي لكل طالب</label>
                             <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-shuffle-o" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> ترتيب خيارات الاختيار من متعدد عشوائي</label>
                             <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer"><input type="checkbox" id="doc-show-score" onchange="syncCurrentExamFields()" class="accent-indigo-500 w-4 h-4"> إظهار الدرجة للطالب بعد التسليم</label>
+                            <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">مراجعة الإجابات للطالب بعد التسليم (اختيار واحد)</label><select id="doc-review-mode" onchange="syncCurrentExamFields()" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold"><option value="none">مفيش مراجعة (الافتراضي)</option><option value="marks">علّم كل سؤال صح / غلط بس</option><option value="answers">اعرض الإجابات الصحيحة</option></select></div>
                         </div>
                     </section>
 
@@ -1059,8 +1077,17 @@
             pasteCount: 0,
             tabSwitches: 0,
             fullscreenExits: 0,
+            awayMs: 0,
             logs: []
         };
+        let _fsAway = false, _awayStart = 0;
+        function awayTick() {
+            if (!sessionState.active) return;
+            const away = document.hidden || _fsAway;
+            if (away && !_awayStart) _awayStart = Date.now();
+            else if (!away && _awayStart) { sessionState.awayMs = (sessionState.awayMs || 0) + (Date.now() - _awayStart); _awayStart = 0; }
+        }
+        function currentAwayMs() { return (sessionState.awayMs || 0) + (_awayStart ? Date.now() - _awayStart : 0); }
 
         function refreshIcons() { try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch (e) {} }
 
@@ -1438,6 +1465,7 @@
             document.getElementById('doc-shuffle-q').checked = !!exam.shuffleQuestions;
             document.getElementById('doc-shuffle-o').checked = !!exam.shuffleOptions;
             document.getElementById('doc-show-score').checked = !!exam.showScoreToStudent;
+            document.getElementById('doc-review-mode').value = (exam.reviewMode === 'marks' || exam.reviewMode === 'answers') ? exam.reviewMode : 'none';
             document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || '';
             refreshPeriodUI();
             renderDoctorQuestionsList();
@@ -1484,6 +1512,7 @@
             exam.shuffleQuestions = document.getElementById('doc-shuffle-q').checked;
             exam.shuffleOptions = document.getElementById('doc-shuffle-o').checked;
             exam.showScoreToStudent = document.getElementById('doc-show-score').checked;
+            exam.reviewMode = document.getElementById('doc-review-mode').value || 'none';
             saveState();
         }
 
@@ -1501,7 +1530,8 @@
                 instructions: '',
                 shuffleQuestions: false,
                 shuffleOptions: false,
-                showScoreToStudent: false,
+                showScoreToStudent: true,
+                reviewMode: 'none',
                 bookContent: '',
                 questions: []
             };
@@ -2106,18 +2136,43 @@
             }
 
             if (!isDoctorLoggedIn && typeof window.fbEnsureAnon === 'function') { try { await window.fbEnsureAnon(); } catch (e) {} }
+            const _shuf = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+            const _newOrder = { q: (exam.shuffleQuestions ? _shuf(exam.questions) : exam.questions).map(q => q.id), o: {} };
+            exam.questions.forEach(q => { if (q.type === 'mcq') { const idxs = (q.options || []).map((o, i) => i); _newOrder.o[q.id] = exam.shuffleOptions ? _shuf(idxs) : idxs; } });
+            let ord = _newOrder, savedSess = null, elapsedMs = 0, sid = '';
+            if (!isDoctorLoggedIn) {
+                if (typeof window.fbSessionEnter !== 'function') { showToast('الخدمة غير متاحة — تحقق من الإنترنت', 'warning'); return; }
+                let r;
+                try { r = await window.fbSessionEnter({ exam, studentId: id, name, group, accessCode: enteredCode, orderJson: JSON.stringify(_newOrder) }); }
+                catch (e) { console.warn('session enter failed', e); showToast('تعذر بدء جلسة الامتحان — تحقق من الإنترنت وحاول تاني. (لو الرسالة اتكررت راجع الدكتور)', 'danger'); return; }
+                if (r.state === 'blocked') { showToast('الرقم الجامعي ده دخل الامتحان بالفعل من متصفح أو جهاز تاني ولسه ما سلّمش. كمّل من نفس الجهاز، أو كلّم الدكتور يفتحلك الجلسة من جديد.', 'danger'); return; }
+                if (r.state === 'ended') { showToast('وقت الامتحان انتهى. إجاباتك المحفوظة هتتسلّم للدكتور أول ما يفتح الموقع.', 'warning'); return; }
+                sid = r.sid;
+                if (r.state === 'resume') {
+                    savedSess = r.data; elapsedMs = r.elapsedMs;
+                    try { const o = JSON.parse(r.data.order); if (o && Array.isArray(o.q)) ord = o; } catch (e) {}
+                }
+            }
+            _fsAway = false; _awayStart = 0;
             sessionState = {
                 active: true,
                 exam: JSON.parse(JSON.stringify(exam)),
                 studentName: name,
                 studentId: id,
                 studentGroup: group,
-                startTime: Date.now(),
+                startTime: Date.now() - elapsedMs,
                 timerInterval: null,
-                pasteCount: 0,
-                tabSwitches: 0,
-                fullscreenExits: 0,
+                pasteCount: savedSess ? (savedSess.pasteCount || 0) : 0,
+                tabSwitches: savedSess ? (savedSess.tabSwitches || 0) : 0,
+                fullscreenExits: savedSess ? (savedSess.fullscreenExits || 0) : 0,
+                awayMs: savedSess ? (Number(savedSess.awayMs) || 0) : 0,
+                bigJumps: savedSess ? (savedSess.bigJumps || 0) : 0,
+                reloads: savedSess ? ((savedSess.reloads || 0) + 1) : 0,
                 logs: [],
+                logList: [],
+                sid: sid,
+                dirty: !!savedSess,
+                lastSave: 0,
                 accessCode: enteredCode
             };
 
@@ -2131,14 +2186,15 @@
 
             const qContainer = document.getElementById('active-questions-container');
             qContainer.innerHTML = '';
-            const shuf = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
             if (exam.instructions && exam.instructions.trim()) {
                 const ib = document.createElement('div');
                 ib.className = 'bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs leading-relaxed';
                 ib.innerHTML = '<b>تعليمات الامتحان:</b> ' + escapeHtml(exam.instructions);
                 qContainer.appendChild(ib);
             }
-            const orderedQs = exam.shuffleQuestions ? shuf(exam.questions) : exam.questions;
+            const _qmap = {}; exam.questions.forEach(q => { _qmap[q.id] = q; });
+            const orderedQs = ord.q.map(i => _qmap[i]).filter(Boolean).concat(exam.questions.filter(q => !ord.q.includes(q.id)));
+            const _optList = (q) => { const base = (q.options || []).map((o, i) => [o, i]); const od = ord.o && ord.o[q.id]; return (Array.isArray(od) && od.length === base.length) ? od.map(i => base[i]).filter(Boolean) : base; };
             orderedQs.forEach((q, idx) => {
                 const isMcq = q.type === 'mcq';
                 const block = document.createElement('div');
@@ -2154,7 +2210,7 @@
                     <p class="text-sm font-bold text-slate-900 leading-relaxed">${escapeHtml(q.text)}</p>
                     ${isMcq ? `
                     <div class="space-y-2 pt-1">
-                        ${(exam.shuffleOptions ? shuf((q.options || []).map((o, i) => [o, i])) : (q.options || []).map((o, i) => [o, i])).map(([opt, oIdx]) => `
+                        ${_optList(q).map(([opt, oIdx]) => `
                             <label class="flex items-center gap-2.5 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 cursor-pointer hover:bg-slate-100 transition">
                                 <input type="radio" name="mcq-${escapeHtml(q.id)}" value="${escapeHtml(oIdx)}" class="accent-indigo-500 w-4 h-4 shrink-0">
                                 <span class="text-xs sm:text-sm font-bold text-slate-800">${escapeHtml(opt)}</span>
@@ -2169,7 +2225,18 @@
             });
 
             attachQuestionPasteListeners();
+            if (savedSess) {
+                try {
+                    const sa = JSON.parse(savedSess.answers || '{}');
+                    exam.questions.forEach(q => {
+                        if (q.type === 'mcq') { const v = sa[q.id]; if (typeof v === 'number' && v >= 0) { const el = document.querySelector(`input[name="mcq-${q.id}"][value="${v}"]`); if (el) el.checked = true; } }
+                        else { const ta = document.querySelector(`textarea.student-q-input[data-qid="${q.id}"]`); if (ta && typeof sa[q.id] === 'string') ta.value = sa[q.id]; }
+                    });
+                    sessionState.lastLen = getCombinedStudentAnswersText().length;
+                } catch (e) { console.warn('restore answers failed', e); }
+            }
             updateTelemetryUI();
+            qContainer.addEventListener('change', () => { sessionState.dirty = true; });
 
             // فتح الامتحان في وضع ملء الشاشة (أي خروج منه يُسجَّل في المراقبة)
             try {
@@ -2180,7 +2247,15 @@
             // لو المتصفح رفض ملء الشاشة تلقائياً، نعرض تنبيهاً وزراً لإعادة المحاولة (الجلسة مستمرة)
             setTimeout(() => updateFsNotice(), 800);
             document.getElementById('telemetry-log').innerHTML = '';
-            addTelemetryLog(`بدأت جلسة "${exam.title}" للطالب ${name}.`, 'text-emerald-400');
+            if (savedSess) {
+                try { JSON.parse(savedSess.logs || '[]').forEach(l => { if (Array.isArray(l)) addTelemetryLog(l[0], l[1] || 'text-slate-300'); }); } catch (e) {}
+                addTelemetryLog(`رجعت للجلسة بعد تحديث/إعادة فتح الصفحة (الوقت المتبقي محسوب من وقت السيرفر).`, 'text-amber-400 font-bold');
+            } else addTelemetryLog(`بدأت جلسة "${exam.title}" للطالب ${name}.`, 'text-emerald-400');
+            if (sessionState.sid) {
+                clearInterval(window.__sessSaveInt);
+                window.__sessSaveInt = setInterval(() => flushSession(false), 20000);
+                if (savedSess) setTimeout(() => flushSession(true), 3000);
+            }
 
             clearInterval(sessionState.timerInterval);
             sessionState.timerInterval = setInterval(updateExamTimer, 1000);
@@ -2203,6 +2278,7 @@
 
         function cancelExamSession() {
             sessionState.active = false;
+            clearInterval(window.__sessSaveInt);
             clearInterval(sessionState.timerInterval);
             try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
             document.getElementById('student-exam-room').classList.add('hidden');
@@ -2343,6 +2419,7 @@
             (exam.questions || []).forEach((q, i) => {
                 answers[q.id] = { correctIndex: (typeof q.correctIndex === 'number' ? q.correctIndex : null), modelAnswer: q.modelAnswer || '' };
                 reveal.q[q.id] = q.type === 'mcq' ? { t: 'mcq', c: (typeof q.correctIndex === 'number' ? q.correctIndex : 0) } : { t: 'essay', keys: buildEssayKeys(q, exam.bookContent) };
+                if (exam.reviewMode === 'answers' && q.type !== 'mcq' && q.modelAnswer) reveal.q[q.id].m = String(q.modelAnswer).slice(0, 3000);
                 delete pub.questions[i].correctIndex;
                 delete pub.questions[i].modelAnswer;
             });
@@ -2358,7 +2435,7 @@
             const _we = exam.endTime ? new Date(exam.endTime).getTime() : 0;
             if (_ws > 0) pub.windowStartMs = _ws;
             if (_we > 0) pub.windowEndMs = _we;
-            return { pub, keysDoc: JSON.parse(JSON.stringify(keysDoc)), reveal: exam.showScoreToStudent ? JSON.parse(JSON.stringify(reveal)) : null };
+            return { pub, keysDoc: JSON.parse(JSON.stringify(keysDoc)), reveal: (exam.showScoreToStudent || exam.reviewMode === 'marks' || exam.reviewMode === 'answers') ? JSON.parse(JSON.stringify(reveal)) : null };
         }
 
         // ===== مؤشرات الصياغة النمطية والسلوك (aiProb) =====
@@ -2392,6 +2469,7 @@
 
         function handleAnswerInput() {
             if (!sessionState.active) return;
+            sessionState.dirty = true;
             // رصد إضافة نص كبير مفاجئة (بخلاف الكتابة المتدرجة)
             const len = getCombinedStudentAnswersText().length;
             const prev = sessionState.lastLen || 0;
@@ -2422,6 +2500,35 @@
             return wpm;
         }
 
+        // حفظ الجلسة على السيرفر: بس لو فيه تغيير، وبحد أدنى AUTOSAVE_MS بين مرتين (غير الخروج من التبويب: 15 ثانية)
+        const AUTOSAVE_MS = 120000;
+        let _saveFailToast = false;
+        function _collectDraft() {
+            const exam = sessionState.exam, answers = {};
+            exam.questions.forEach(q => {
+                if (q.type === 'mcq') { const sel = document.querySelector(`input[name="mcq-${q.id}"]:checked`); answers[q.id] = sel ? parseInt(sel.value, 10) : -1; }
+                else { const ta = document.querySelector(`textarea.student-q-input[data-qid="${q.id}"]`); answers[q.id] = ta ? ta.value.slice(0, 20000) : ''; }
+            });
+            let logs = JSON.stringify((sessionState.logList || []).slice(-40));
+            while (logs.length > 7000 && sessionState.logList.length > 5) { sessionState.logList.shift(); logs = JSON.stringify(sessionState.logList); }
+            return { answers: JSON.stringify(answers), logs, tabSwitches: sessionState.tabSwitches, fullscreenExits: sessionState.fullscreenExits, pasteCount: sessionState.pasteCount, bigJumps: sessionState.bigJumps || 0, reloads: sessionState.reloads || 0, awayMs: Math.round(currentAwayMs()) };
+        }
+        async function flushSession(force) {
+            if (!sessionState || !sessionState.active || !sessionState.sid || isDoctorLoggedIn || sessionState.saving) return;
+            if (!sessionState.dirty && !force) return;
+            const gap = Date.now() - (sessionState.lastSave || 0);
+            if (!force && gap < (document.hidden ? 15000 : AUTOSAVE_MS)) return;
+            if (typeof window.fbSessionSave !== 'function') return;
+            sessionState.saving = true;
+            try {
+                await withTimeout(window.fbSessionSave(sessionState.sid, _collectDraft()), 15000);
+                sessionState.dirty = false; sessionState.lastSave = Date.now(); _saveFailToast = false;
+            } catch (e) {
+                console.warn('session save failed', e);
+                if (!_saveFailToast) { _saveFailToast = true; showToast('تعذر حفظ نسخة احتياطية من إجاباتك (النت أو الوقت). كمّل وسلّم عادي.', 'warning'); }
+            } finally { if (sessionState) sessionState.saving = false; }
+        }
+
         function updateExamTimer() {
             if (!sessionState.active) return;
             const elapsed = Math.floor((Date.now() - sessionState.startTime) / 1000);
@@ -2450,26 +2557,50 @@
 
         function setupTelemetryListeners() {
             document.addEventListener('visibilitychange', () => {
+                awayTick();
                 if (sessionState.active && document.hidden) {
                     sessionState.tabSwitches++;
                     addTelemetryLog('مغادرة تبويب الامتحان أو تصغير النافذة.', 'text-amber-400 font-bold');
                     updateTelemetryUI();
+                    flushSession(false);
+                    sessionState.__tabAway = true;
+                } else if (sessionState.active && !document.hidden && sessionState.__tabAway) {
+                    sessionState.__tabAway = false;
+                    showLeaveWarn('tab');
                 }
             });
+            window.addEventListener('offline', () => { if (sessionState.active) { addTelemetryLog('انقطع الاتصال بالإنترنت (الامتحان مستمر والوقت بيعدّ).', 'text-amber-400 font-bold'); sessionState.dirty = true; } });
+            window.addEventListener('online', () => { if (sessionState.active) { addTelemetryLog('رجع الاتصال بالإنترنت.', 'text-emerald-400 font-bold'); flushSession(true); } });
             document.addEventListener('fullscreenchange', () => {
+                if (sessionState.active) { _fsAway = !document.fullscreenElement; awayTick(); }
                 if (sessionState.active && !document.fullscreenElement) {
                     sessionState.fullscreenExits++;
                     addTelemetryLog('الخروج من وضع ملء الشاشة أثناء الامتحان.', 'text-rose-400 font-bold');
                     updateTelemetryUI();
+                    showLeaveWarn('fs');
                 }
                 updateFsNotice();
             });
+        }
+
+        // تحذير الخروج: الطالب مش بيتشال من الامتحان إلا لو وافق صراحة (وساعتها بتتسلّم إجاباته)
+        function closeLeaveWarn() { const o = document.getElementById('exam-leave-warn'); if (o) o.remove(); }
+        function showLeaveWarn(kind) {
+            if (!sessionState.active || isDoctorLoggedIn || document.getElementById('exam-leave-warn')) return;
+            const o = document.createElement('div');
+            o.id = 'exam-leave-warn';
+            o.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,15,.82)';
+            o.innerHTML = '<div dir="rtl" style="max-width:380px;width:100%;background:#0f172a;border:1px solid #f59e0b;border-radius:16px;padding:22px;color:#fff;font-family:inherit"><h3 style="font-weight:800;font-size:16px;margin:0 0 8px;color:#fbbf24">تحذير: ' + (kind === 'tab' ? 'خرجت من تبويب الامتحان' : 'خرجت من وضع ملء الشاشة') + '</h3><p style="font-size:13px;line-height:1.8;color:#cbd5e1;margin:0 0 14px">الخروج بيتسجّل للدكتور. تقدر تكمّل الامتحان، أو تخرج دلوقتي وإجاباتك اللي كتبتها هتتسلّم وتخلص المحاولة (مفيش رجوع).</p><div style="display:flex;gap:8px"><button type="button" id="elw-continue" style="flex:1;background:#4f46e5;color:#fff;border:0;border-radius:12px;padding:10px;font-weight:800;font-size:12px;cursor:pointer">كمّل الامتحان</button><button type="button" id="elw-leave" style="flex:1;background:#e11d48;color:#fff;border:0;border-radius:12px;padding:10px;font-weight:800;font-size:12px;cursor:pointer">اطلع وسلّم إجاباتي</button></div></div>';
+            document.body.appendChild(o);
+            document.getElementById('elw-continue').addEventListener('click', () => { closeLeaveWarn(); try { reenterFullscreen(); } catch (e) {} });
+            document.getElementById('elw-leave').addEventListener('click', () => { closeLeaveWarn(); addTelemetryLog('الطالب اختار الخروج وتسليم إجاباته.', 'text-rose-400 font-bold'); submitExam(true); });
         }
 
         function addTelemetryLog(msg, cls = 'text-slate-300') {
             const box = document.getElementById('telemetry-log');
             if (!box) return;
             const time = new Date().toLocaleTimeString('ar-EG', { hour12: false });
+            try { if (sessionState && sessionState.logList) { sessionState.logList.push([`[${time}] ${msg}`, cls]); if (sessionState.logList.length > 40) sessionState.logList.shift(); sessionState.dirty = true; } } catch (e) {}
             const div = document.createElement('div');
             div.className = cls;
             div.textContent = `[${time}] ${msg}`;
@@ -2477,6 +2608,7 @@
         }
 
         function updateTelemetryUI() {
+            try { if (sessionState) sessionState.dirty = true; } catch (e) {}
             document.getElementById('metric-paste').textContent = sessionState.pasteCount;
             document.getElementById('metric-paste').className = sessionState.pasteCount > 0 ? 'text-2xl font-extrabold text-rose-400' : 'text-2xl font-extrabold text-white';
             document.getElementById('metric-tabs').textContent = sessionState.tabSwitches;
@@ -2491,27 +2623,82 @@
         }
 
         // الطالب يرسل إجاباته الخام فقط. الدرجة الرسمية تُحسب في صفحة الدكتور.
-        function closeScoreOverlay() { const o = document.getElementById('score-overlay'); o.classList.add('hidden'); o.querySelectorAll('.so-fall').forEach(n => n.remove()); }
+        function _soBuildSvg() {
+            const svg = document.getElementById('so-svg'); if (!svg || svg.childElementCount) return;
+            let h = '<circle class="so-c" cx="0" cy="0" r="70"/>';
+            for (let k = 0; k < 12; k++) {
+                const col = k % 2 ? '#34d399' : '#22d3ee';
+                h += '<g transform="rotate(' + (k * 30) + ')"><path class="tr" pathLength="1" stroke="' + col + '" d="M78 0 H102 L114 11 H140"/><circle class="nd" cx="140" cy="11" r="3.5"/></g>';
+            }
+            svg.innerHTML = h;
+        }
+        function closeScoreOverlay() { const o = document.getElementById('score-overlay'); o.classList.add('hidden'); o.classList.remove('so-wait', 'so-done'); }
+        function showScoreWaiting() {
+            _soBuildSvg();
+            const o = document.getElementById('score-overlay');
+            document.getElementById('so-score').textContent = '';
+            document.getElementById('so-sub').textContent = 'جاري التصحيح...';
+            document.getElementById('so-break').textContent = '';
+            document.getElementById('so-note').textContent = '';
+            const rv = document.getElementById('so-review'); rv.innerHTML = ''; rv.classList.add('hidden');
+            document.getElementById('so-close').classList.add('hidden');
+            o.classList.remove('so-done', 'hidden'); o.classList.add('so-wait');
+        }
+        // d: { showScore, mS, mM, eS, eM, rows:[html] | null }
         function showScoreOverlay(d) {
+            _soBuildSvg();
             const o = document.getElementById('score-overlay');
             const fmt = n => String(Math.round(Number(n) * 100) / 100);
-            const m = document.getElementById('so-mcq'), e = document.getElementById('so-essay');
-            m.classList.toggle('hidden', !(d.mM > 0)); e.classList.toggle('hidden', !(d.eM > 0));
-            if (d.mM > 0) m.textContent = 'الاختياري: ' + fmt(d.mS) + ' / ' + fmt(d.mM);
-            if (d.eM > 0) e.textContent = 'المقالي (مبدئي): ' + fmt(d.eS) + ' / ' + fmt(d.eM);
-            document.getElementById('so-note').textContent = 'الدرجة النهائية يعتمدها الدكتور.';
-            o.querySelectorAll('.so-fall').forEach(n => n.remove());
-            const em = ['🎊', '🎉', '🎈'];
-            for (let i = 0; i < 28; i++) {
-                const sp = document.createElement('span');
-                sp.className = 'so-fall'; sp.textContent = em[i % 3];
-                sp.style.left = (Math.random() * 96) + '%';
-                sp.style.animationDuration = (4 + Math.random() * 5) + 's';
-                sp.style.animationDelay = (-Math.random() * 6) + 's';
-                sp.style.fontSize = (22 + Math.random() * 20) + 'px';
-                o.appendChild(sp);
+            const total = (d.mS || 0) + (d.eS || 0), max = (d.mM || 0) + (d.eM || 0);
+            const sc = document.getElementById('so-score'), sub = document.getElementById('so-sub'), br = document.getElementById('so-break');
+            if (d.showScore) {
+                sc.textContent = fmt(total) + ' / ' + fmt(max);
+                sub.textContent = d.eM > 0 ? 'مبدئي' : '';
+                const parts = [];
+                if (d.mM > 0) parts.push('الاختياري: <span style="direction:ltr;unicode-bidi:isolate;display:inline-block">' + fmt(d.mS) + ' / ' + fmt(d.mM) + '</span>');
+                if (d.eM > 0) parts.push('المقالي (مبدئي): <span style="direction:ltr;unicode-bidi:isolate;display:inline-block">' + fmt(d.eS) + ' / ' + fmt(d.eM) + '</span>');
+                br.innerHTML = parts.join('  •  ');
+                document.getElementById('so-note').textContent = 'الدرجة النهائية يعتمدها الدكتور.';
+            } else {
+                sc.textContent = 'تم التسليم'; sub.textContent = ''; br.textContent = '';
+                document.getElementById('so-note').textContent = '';
             }
-            o.classList.remove('hidden');
+            const rv = document.getElementById('so-review');
+            if (d.rows && d.rows.length) { rv.innerHTML = d.rows.join(''); rv.classList.remove('hidden'); } else { rv.innerHTML = ''; rv.classList.add('hidden'); }
+            document.getElementById('so-close').classList.remove('hidden');
+            o.classList.remove('hidden', 'so-wait'); o.classList.add('so-done');
+        }
+        // صفوف مراجعة الإجابات للطالب: marks = صح/غلط بس، answers = مع الإجابة الصحيحة
+        function buildReviewRows(exam, answers, local, revealQ, mode) {
+            const esc = escapeHtml, rows = [];
+            exam.questions.forEach((q, qi) => {
+                const d = local && local.qDetails[qi]; if (!d) return;
+                const head = 'س' + (qi + 1) + ': ' + esc(String(q.text || '').slice(0, 80));
+                const rq = (revealQ && revealQ[q.id]) || {};
+                const a = answers ? answers[q.id] : undefined;
+                if (q.type === 'mcq') {
+                    const chosen = (typeof a === 'number' && a >= 0) ? a : -1;
+                    const ok = d.score >= d.maxScore;
+                    let t = '<div class="so-row"><b class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ صح' : (chosen === -1 ? '✗ من غير إجابة' : '✗ غلط')) + '</b> ' + head;
+                    if (mode === 'answers') {
+                        const ci = (typeof rq.c === 'number') ? rq.c : (typeof q.correctIndex === 'number' ? q.correctIndex : null);
+                        if (chosen !== -1) t += '<br>إجابتك: ' + esc(String((q.options || [])[chosen] || ''));
+                        if (ci !== null) t += '<br>الصحيحة: ' + esc(String((q.options || [])[ci] || ''));
+                    }
+                    rows.push(t + '</div>');
+                } else {
+                    const ans = (typeof a === 'string' ? a : '').trim();
+                    const fm = n => String(Math.round(Number(n) * 100) / 100);
+                    let t = '<div class="so-row"><b class="mid">' + fm(d.score) + ' / ' + fm(d.maxScore) + ' (مبدئي)</b> ' + head;
+                    if (mode === 'answers') {
+                        t += '<br>إجابتك: ' + (ans ? esc(ans.slice(0, 300)) : 'من غير إجابة');
+                        const m = rq.m || q.modelAnswer || '';
+                        t += '<br>الإجابة النموذجية: ' + (m ? esc(String(m).slice(0, 600)) : 'مش متاحة (الدكتور لازم يعيد حفظ الامتحان)');
+                    }
+                    rows.push(t + '</div>');
+                }
+            });
+            return rows;
         }
         function setLoaderStep(t) { const el = document.getElementById('loader-step-text'); if (el) el.textContent = t; }
 
@@ -2523,7 +2710,7 @@
             if (/permission/i.test(code)) {
                 try { if (typeof window.fbGetAttempt === 'function' && await window.fbGetAttempt(subId)) return 'taken'; } catch (x) {}
                 const nowMs = Date.now();
-                if ((exam.windowStartMs && nowMs < exam.windowStartMs - 180000) || (exam.windowEndMs && exam.durationMin > 0 && nowMs > exam.windowEndMs + exam.durationMin * 60000 + 180000)) return 'time';
+                if ((exam.windowStartMs && nowMs < exam.windowStartMs - 180000) || (exam.windowEndMs && exam.durationMin > 0 && nowMs > exam.windowEndMs + exam.durationMin * 60000 + 30000)) return 'time';
                 if (exam.requiresCode || exam.accessCode) return 'code';
             }
             return '';
@@ -2540,9 +2727,23 @@
                 return;
             }
 
+            if (force !== true) {
+                let un = 0;
+                exam.questions.forEach(q => {
+                    if (q.type === 'mcq') { if (!document.querySelector(`input[name="mcq-${q.id}"]:checked`)) un++; }
+                    else { const ta = document.querySelector(`textarea.student-q-input[data-qid="${q.id}"]`); if (!ta || !ta.value.trim()) un++; }
+                });
+                if (un > 0) {
+                    const goOn = await showConfirmModal({ title: 'في أسئلة من غير إجابة', message: `لسه ${un} سؤال من ${exam.questions.length} من غير إجابة. تسلّم دلوقتي ولا تكمّل؟`, confirmLabel: 'سلّم دلوقتي', cancelLabel: 'كمّل الامتحان' });
+                    if (!goOn) return;
+                    if (sessionState.submitting || !sessionState.active) return;
+                }
+            }
             sessionState.submitting = true;
             sessionState.active = false;
             clearInterval(sessionState.timerInterval);
+            clearInterval(window.__sessSaveInt);
+            try { closeLeaveWarn(); } catch (e) {}
             try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
             const durationSec = Math.max(Math.floor((Date.now() - sessionState.startTime) / 1000), 5);
             const wpm = calculateWPM();
@@ -2580,6 +2781,8 @@
                 fullscreenExits: sessionState.fullscreenExits,
                 wpm,
                 bigJumps: sessionState.bigJumps || 0,
+                reloads: sessionState.reloads || 0,
+                awayMs: Math.round(currentAwayMs()),
                 durationSec,
                 createdAtMs: Date.now(),
                 doctorUid: exam.doctorUid || null,
@@ -2636,15 +2839,16 @@
                 else showToast('تعذر تسليم الإجابات (تحقق من الإنترنت). إجاباتك ما زالت محفوظة، اضغط تسليم مرة أخرى.', 'danger');
                 return;
             }
+            const reviewMode = (exam.reviewMode === 'marks' || exam.reviewMode === 'answers') ? exam.reviewMode : 'none';
+            const needScore = !!exam.showScoreToStudent || reviewMode !== 'none';
+            if (needScore) { document.getElementById('grading-loader').classList.add('hidden'); showScoreWaiting(); }
             setLoaderStep('تم الإرسال، جاري تجهيز الدرجة...');
             let ticketOk = true;
             try { if (!isDoctorLoggedIn && uid && typeof window.fbMakeTicket === 'function') await withTimeout(window.fbMakeTicket(exam.id, subId, uid), 10000); } catch (e) { ticketOk = false; console.warn('ticket failed', e); }
 
-            // عرض الدرجة فوراً للطالب (إن فعّل الدكتور ذلك) باستخدام مفاتيح الكشف بعد التسليم. الدرجة الرسمية يحسبها الدكتور.
-            let local = null;
-            if (exam.showScoreToStudent) {
+            let local = null, revealQ = null;
+            if (needScore) {
                 if (isDoctorLoggedIn) {
-                    // معاينة الدكتور: المفاتيح موجودة عنده محلياً
                     try {
                         const g = gradeQuestions(exam, answers, q => q.type === 'mcq' ? { t: 'mcq', c: (typeof q.correctIndex === 'number' ? q.correctIndex : 0) } : { t: 'essay', keys: buildEssayKeys(q, exam.bookContent) });
                         if (g.ok) local = g;
@@ -2657,9 +2861,9 @@
                         if (!reveal || !reveal.q) scoreWhy = 'مستند كشف الإجابات غير موجود (يحتاج الدكتور أن يفتح لوحة الدكتور مرة أو يحفظ الامتحان)';
                         else {
                             const g = gradeQuestions(exam, answers, q => reveal.q[q.id] || null);
-                            if (g.ok) local = g; else scoreWhy = 'مستند الكشف لا يطابق أسئلة الامتحان (أعد حفظ الامتحان)';
+                            if (g.ok) { local = g; revealQ = reveal.q; } else scoreWhy = 'مستند الكشف لا يطابق أسئلة الامتحان (أعد حفظ الامتحان)';
                         }
-                    } catch (e) { console.warn('reveal failed', e); scoreWhy = 'تعذر قراءة مستند الكشف (' + ((e && e.code) || 'error') + ')، تأكد من نشر القواعد الأخيرة وأن التذكرة اتسجلت'; }
+                    } catch (e) { console.warn('reveal failed', e); scoreWhy = 'تعذر قراءة مستند الكشف (' + ((e && e.code) || 'error') + ')، تأكد من نشر القواعد الجديدة'; }
                 }
             }
 
@@ -2671,18 +2875,19 @@
 
             if (isDoctorLoggedIn && typeof processPendingSubmissions === 'function') setTimeout(processPendingSubmissions, 800);
             let scoreMsg = ''; let overlayData = null;
-            if (exam.showScoreToStudent && local) {
+            if (needScore && local) {
                 let mS = 0, mM = 0, eS = 0, eM = 0;
                 exam.questions.forEach((q, qi) => {
                     const d = local.qDetails[qi]; if (!d) return;
                     if (q.type === 'mcq') { mS += d.score; mM += d.maxScore; } else { eS += d.score; eM += d.maxScore; }
                 });
-                overlayData = { mS, mM, eS, eM };
+                overlayData = { showScore: !!exam.showScoreToStudent, mS, mM, eS, eM, rows: reviewMode === 'none' ? null : buildReviewRows(exam, answers, local, revealQ, reviewMode) };
             }
+            if (needScore && !overlayData) closeScoreOverlay();
             showToast(isDoctorLoggedIn ? `معاينة امتحان "${exam.title}" انتهت — المعاينة لا تسجل أي تسليم.` : `تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.`, isDoctorLoggedIn ? 'info' : 'success');
             if (overlayData) showScoreOverlay(overlayData);
-            if (!ticketOk && exam.showScoreToStudent && !local) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
-            if (ticketOk && exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
+            if (!ticketOk && needScore && !local) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
+            if (ticketOk && needScore && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
         }
 
         // ===== تصحيح الدكتور: يحوّل التسليم الخام إلى سجل نتيجة (نفس شكل السجلات القديمة) =====
@@ -2781,6 +2986,8 @@
                 pasteCount,
                 tabSwitches,
                 fullscreenExits,
+                reloads: Number(sub.reloads) || 0,
+                awayMs: Math.max(0, Math.min(Number(sub.awayMs) || 0, 86400000)),
                 wpm,
                 durationSec: Number(sub.durationSec) || 0,
                 alerts: reasons.length ? reasons.join(' + ') + ' — مؤشرات إرشادية وليست دليلاً قاطعاً، والقرار للدكتور.' : 'سلوك طبيعي ومتوافق مع المرجع الدراسي.',
@@ -2813,11 +3020,69 @@
 
         let procBusy = false;
         const procWarned = new Set();
+        // ===== v28.40: جلسات الطلبة اللي دخلوا ولسه ما سلّموش (جانب الدكتور) =====
+        let _openSessions = [];
+        // الدكتور فاتح الموقع: كل 3 دقايق يفحص الجلسات المنتهية ويسلّمها ويصحّحها
+        if (!window.__sessTick) window.__sessTick = setInterval(() => { try { if (isDoctorLoggedIn) processPendingSubmissions(); } catch (e) {} }, 180000);
+        function _sessExpired(se) { const d = Number(se.durMin) || 0; return d > 0 && se.startedAt && Date.now() > se.startedAt.toMillis() + d * 60000 + 30000; }
+        function fmtAway(ms) { const sec = Math.round((Number(ms) || 0) / 1000); if (sec < 60) return sec + ' ثانية'; return Math.floor(sec / 60) + ' دقيقة و' + (sec % 60) + ' ثانية'; }
+        function _buildSubFromSession(se, exam) {
+            let saved = {}; try { saved = JSON.parse(se.answers || '{}'); } catch (e) {}
+            const answers = {};
+            exam.questions.forEach(q => { const v = saved[q.id]; answers[q.id] = q.type === 'mcq' ? (typeof v === 'number' ? v : -1) : (typeof v === 'string' ? v : ''); });
+            return { examId: exam.id, examTitle: String(exam.title || '').slice(0, 200), id: se.studentId, name: se.name, group: se.group, submitTime: 'تسليم تلقائي من الجلسة المحفوظة (انتهى الوقت)', answers, pasteCount: se.pasteCount || 0, tabSwitches: se.tabSwitches || 0, fullscreenExits: se.fullscreenExits || 0, wpm: 0, bigJumps: se.bigJumps || 0, reloads: se.reloads || 0, awayMs: Number(se.awayMs) || 0, durationSec: (Number(se.durMin) || 0) * 60, createdAtMs: Date.now(), doctorUid: se.doctorUid, uid: se.uid, accessCode: '', autoFinalized: true };
+        }
+        async function finalizeSession(sid) {
+            const se = _openSessions.find(x => x._id === sid); if (!se) return false;
+            const exam = exams.find(e => e.id === se.examId); if (!exam) return false;
+            await window.fbFinalizeSession(sid, _buildSubFromSession(se, exam));
+            return true;
+        }
+        async function refreshOpenSessions(autoFinalize) {
+            if (!isDoctorLoggedIn || typeof window.fbListMySessions !== 'function') return 0;
+            try { _openSessions = await window.fbListMySessions(); } catch (e) { console.warn('sessions list failed (publish v28.40 rules)', e); _openSessions = []; renderOpenSessions(); return 0; }
+            let fin = 0;
+            if (autoFinalize) {
+                for (const se of _openSessions.slice()) {
+                    if (!_sessExpired(se)) continue;
+                    try { if (await finalizeSession(se._id)) fin++; } catch (e) { console.warn('finalize failed', se._id, e); }
+                }
+                if (fin) { _openSessions = await window.fbListMySessions().catch(() => []); showToast(`تم تسليم ${fin} جلسة منتهية تلقائيًا من إجاباتها المحفوظة`, 'success'); }
+            }
+            renderOpenSessions();
+            return fin;
+        }
+        function renderOpenSessions() {
+            let card = document.getElementById('open-sessions-card');
+            const host = document.getElementById('view-reports');
+            if (!host) return;
+            if (!card) { card = document.createElement('div'); card.id = 'open-sessions-card'; card.className = 'bg-white rounded-2xl border border-amber-300 p-5 shadow-sm space-y-3'; host.insertBefore(card, host.firstChild); }
+            if (!_openSessions.length) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+            const fmt = t => t ? t.toDate().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : '-';
+            card.innerHTML = '<h3 class="text-sm font-extrabold text-slate-900">دخلوا الامتحان ولسه ما سلّموش (' + _openSessions.length + ')</h3><p class="text-[11px] text-slate-500">الجلسة المنتهية بتتسلّم تلقائيًا من آخر نسخة محفوظة لما تفتح الموقع. "إعادة فتح" بيمسح الجلسة فالطالب يقدر يدخل من الأول.</p>' +
+                _openSessions.map(se => { const ex = exams.find(e => e.id === se.examId); const expired = _sessExpired(se); const d0 = !(Number(se.durMin) > 0);
+                    return '<div class="flex flex-wrap items-center justify-between gap-2 border border-slate-200 rounded-xl p-3 text-xs"><div><b>' + escapeHtml(se.name || '') + '</b> <span class="font-mono" dir="ltr">' + escapeHtml(se.studentId || '') + '</span> • ' + escapeHtml(ex ? ex.title : se.examId) + '<br><span class="text-slate-500">دخل: ' + fmt(se.startedAt) + ' • آخر حفظ: ' + fmt(se.savedAt) + ' • ' + (expired ? 'الوقت انتهى' : 'شغال/لسه في وقته') + '</span></div><div class="flex gap-2">' +
+                    ((expired || d0) ? '<button type="button" onclick="manualFinalizeSession(\'' + escapeHtml(se._id) + '\')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg">تسليم المحفوظ</button>' : '') +
+                    '<button type="button" onclick="reopenSession(\'' + escapeHtml(se._id) + '\')" class="bg-slate-100 text-rose-700 font-bold px-3 py-1.5 rounded-lg">إعادة فتح</button></div></div>'; }).join('');
+        }
+        async function manualFinalizeSession(sid) {
+            try { if (await finalizeSession(sid)) { showToast('تم تسليم الإجابات المحفوظة', 'success'); await refreshOpenSessions(false); setTimeout(processPendingSubmissions, 1200); } }
+            catch (e) { console.warn(e); showToast('تعذر التسليم (الوقت لسه ماخلصش أو القواعد مش منشورة).', 'danger'); }
+        }
+        async function reopenSession(sid) {
+            const se = _openSessions.find(x => x._id === sid);
+            const ok = await showConfirmModal({ title: 'إعادة فتح الجلسة', message: 'هيتمسح اللي الطالب ' + (se ? se.name : '') + ' كتبه ويقدر يدخل الامتحان من الأول بوقت جديد. متأكد؟' });
+            if (!ok) return;
+            try { await window.fbDeleteSession(sid); await refreshOpenSessions(false); showToast('اتمسحت الجلسة. الطالب يقدر يدخل من جديد.', 'success'); } catch (e) { showToast('تعذر المسح.', 'danger'); }
+        }
+
         async function processPendingSubmissions() {
             if (procBusy || !isDoctorLoggedIn || !window.__keysReady || typeof window.fbCommitResult !== 'function') return;
             procBusy = true;
             let done = 0;
             try {
+                if (!window.__sessChecked || Date.now() - window.__sessChecked > 120000) { window.__sessChecked = Date.now(); const fin = await refreshOpenSessions(true); if (fin) setTimeout(processPendingSubmissions, 2500); }
                 for (const sub of (window.__submissions || [])) {
                     if (sub.processedAtMs) continue;
                     const exam = exams.find(e => e.id === sub.examId);
@@ -2880,6 +3145,7 @@
                 <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700">اللصق: ${escapeHtml(rec.pasteCount)}</span>
                 <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700">تبديل التبويب: ${escapeHtml(rec.tabSwitches)}</span>
                 <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700">خروج ملء الشاشة: ${escapeHtml(rec.fullscreenExits || 0)}</span>
+                <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700">وقت خارج الامتحان: ${fmtAway(rec.awayMs)}</span>
                 <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-700">السرعة: ${escapeHtml(rec.wpm)} ك/د</span>
             `;
         }
@@ -2926,9 +3192,9 @@
                             <option value="قيد مراجعة الدكتور" ${rec.doctorDecision === 'قيد مراجعة الدكتور' ? 'selected' : ''}>⏳ مراجعة</option>
                             <option value="ملغى للغش" ${rec.doctorDecision === 'ملغى للغش' ? 'selected' : ''}>❌ إلغاء</option>
                         </select>
-                        <button type="button" onclick="openGradeEditor(${realIdx})" class="block mx-auto text-[11px] font-bold text-primary-700 hover:bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                        <button type="button" onclick="openGradeEditor(${realIdx})" class="block mx-auto text-[11px] font-bold ${(rec.manualEdited || rec.reviewed) ? 'text-white bg-rose-600 hover:bg-rose-700 border border-rose-700' : 'text-primary-700 hover:bg-primary-50 border border-primary-100'} px-2.5 py-1 rounded-lg transition flex items-center gap-1">
                             <i data-lucide="pencil" class="w-3 h-3"></i>
-                            <span>تعديل الدرجات${rec.manualEdited ? ' •' : ''}</span>
+                            <span>عرض الأسئلة وتصحيح الدرجة</span>
                         </button>
                     </td>
                 `;
@@ -2962,7 +3228,7 @@
             rows.innerHTML = '';
             (rec.questionDetails || []).forEach((qd, i) => {
                 const row = document.createElement('div');
-                row.className = 'bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2';
+                row.className = qd.edited ? 'bg-rose-50 border border-rose-300 rounded-xl p-3.5 space-y-2' : 'bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2';
                 row.innerHTML = `
                     <div class="flex items-center justify-between gap-3">
                         <span class="text-xs font-bold text-slate-800 leading-relaxed">س${i + 1}: ${escapeHtml(qd.qText)}</span>
@@ -2971,6 +3237,7 @@
                             <span class="text-xs font-bold text-slate-500">/ ${qd.maxScore}</span>
                         </div>
                     </div>
+                    <div id="ge-ans-${i}" class="text-xs text-slate-500">جاري تحميل إجابة الطالب...</div>
                     <input type="text" id="ge-note-${i}" value="${escapeHtml(qd.note || '')}" placeholder="ملاحظة الدكتور على هذا السؤال..." class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary-500">
                 `;
                 rows.appendChild(row);
@@ -2979,8 +3246,45 @@
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             refreshIcons();
+            loadGradeEditorAnswers(realIdx);
+        }
+        // عرض إجابات الطالب جوه نافذة تصحيح الدرجة (من مستند التسليم، مش من النتيجة ولا الإكسل)
+        async function loadGradeEditorAnswers(realIdx) {
+            const rec = examRecords[realIdx]; if (!rec) return;
+            const n = (rec.questionDetails || []).length;
+            const setAll = (html) => { for (let i = 0; i < n; i++) { const el = document.getElementById('ge-ans-' + i); if (el) el.innerHTML = html; } };
+            try {
+                const sub = (rec._fid && typeof window.fbGetSubmission === 'function') ? await window.fbGetSubmission(rec._fid) : null;
+                if (gradeEditRecordIdx !== realIdx) return;
+                if (!sub || !sub.answers) { setAll('إجابات الطالب مش متاحة لهذا السجل.'); return; }
+                let ans = sub.answers; if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) { ans = {}; } } ans = ans || {};
+                const ex = exams.find(e => e.id === rec.examId);
+                if (!ex || !Array.isArray(ex.questions)) { setAll('الامتحان غير موجود عندك، مش هقدر أعرض الإجابات.'); return; }
+                const esc = escapeHtml;
+                ex.questions.forEach((q, i) => {
+                    const el = document.getElementById('ge-ans-' + i); if (!el) return;
+                    const a = ans[q.id];
+                    let inner = '<div class="font-bold text-slate-700 mb-1 whitespace-pre-wrap">' + esc(q.text || '') + '</div>';
+                    if (q.type === 'mcq') {
+                        const ci = typeof q.correctIndex === 'number' ? q.correctIndex : -1;
+                        const ok = typeof a === 'number' && a === ci;
+                        const chosen = (typeof a === 'number' && a >= 0) ? esc((q.options || [])[a] || '') : 'من غير إجابة';
+                        inner += '<div class="' + (ok ? 'text-emerald-700' : 'text-rose-700') + ' font-bold">إجابة الطالب: ' + chosen + (ok ? ' ✓' : ' ✗') + '</div>' + (ok ? '' : '<div class="text-emerald-700">الصحيحة: ' + esc((q.options || [])[ci] || '') + '</div>');
+                    } else {
+                        const t = (typeof a === 'string' ? a : '').trim();
+                        inner += '<div class="text-slate-500">إجابة الطالب:</div><div class="whitespace-pre-wrap bg-white border border-slate-200 rounded-lg p-2 text-slate-800">' + (t ? esc(t) : 'من غير إجابة') + '</div>';
+                        if (q.modelAnswer) inner += '<div class="text-emerald-700 mt-1">الإجابة النموذجية: ' + esc(String(q.modelAnswer).slice(0, 600)) + '</div>';
+                    }
+                    el.innerHTML = inner;
+                });
+            } catch (e) { setAll('تعذر تحميل إجابات الطالب (' + ((e && e.code) || 'error') + ').'); }
         }
 
+        function cancelGradeEditor() {
+            const r = examRecords[gradeEditRecordIdx];
+            closeGradeEditor();
+            if (r && !r.reviewed && !r.manualEdited) showToast('لو دوست تأكيد هغيّر لونه علشان تعرف إنك صححته بنفسك', 'info');
+        }
         function closeGradeEditor() {
             gradeEditRecordIdx = null;
             const modal = document.getElementById('grade-edit-modal');
@@ -2997,19 +3301,21 @@
                 const noteInp = document.getElementById(`ge-note-${i}`);
                 if (!inp) return;
                 const v = Math.max(0, Math.min(Number(inp.value) || 0, Number(qd.maxScore) || 0));
-                qd.score = v;
                 const noteVal = noteInp ? noteInp.value.trim() : '';
+                if (v !== Number(qd.score) || noteVal !== String(qd.note || '')) qd.edited = true;
+                qd.score = v;
                 if (noteVal) qd.note = noteVal;
-                qd.edited = true;
                 total += v;
             });
             rec.score = total;
-            rec.manualEdited = true;
+            if ((rec.questionDetails || []).some(q => q.edited)) rec.manualEdited = true;
+            rec.reviewed = true;
             if (rec._fid && typeof window.fbUpdateResult === 'function') {
                 try {
                     await window.fbUpdateResult(rec._fid, {
                         score: rec.score,
-                        manualEdited: true,
+                        manualEdited: !!rec.manualEdited,
+                        reviewed: true,
                         questionDetails: JSON.parse(JSON.stringify(rec.questionDetails || []))
                     });
                 } catch (e) {
@@ -3099,6 +3405,8 @@
                 if (r.pasteCount) flags.push('لصق ' + r.pasteCount + ' مرة');
                 if (r.tabSwitches) flags.push('مغادرة التبويب ' + r.tabSwitches + ' مرة');
                 if (r.fullscreenExits) flags.push('خروج من ملء الشاشة ' + r.fullscreenExits + ' مرة');
+                if (r.awayMs >= 5000) flags.push('وقت خارج الامتحان ' + fmtAway(r.awayMs));
+                if (r.reloads) flags.push('تحديث/إعادة فتح الصفحة ' + r.reloads + ' مرة');
                 if (r.doctorDecision) flags.push('قرار الدكتور: ' + r.doctorDecision);
                 if (flags.length) lines.push('   أهم الملاحظات: ' + flags.join(' ، '));
             });
@@ -3133,6 +3441,8 @@
                 if (r.pasteCount) flags.push('لصق ' + r.pasteCount);
                 if (r.tabSwitches) flags.push('مغادرة التبويب ' + r.tabSwitches);
                 if (r.fullscreenExits) flags.push('خروج ملء الشاشة ' + r.fullscreenExits);
+                if (r.awayMs >= 5000) flags.push('وقت خارج الامتحان ' + fmtAway(r.awayMs));
+                if (r.reloads) flags.push('تحديث الصفحة ' + r.reloads);
                 if (r.doctorDecision) flags.push('قرار الدكتور: ' + r.doctorDecision);
                 const row = '<tr><td ' + td + '>' + (i + 1) + '</td><td ' + td + '>' + escHtml(r.name) + '</td><td ' + td + '>' + escHtml(r.id) + '</td><td ' + td + '>' + escHtml(r.group || '-') + '</td><td ' + td + '>' + escHtml(r.score) + ' / ' + escHtml(r.maxScore) + '</td><td ' + td + '>' + escHtml(r.status || '-') + '</td><td ' + td + '>' + escHtml((r.aiProb || 0) + '%') + '</td><td ' + td + '>' + escHtml(flags.join(' ، ') || '-') + '</td></tr>';
                 if (used + row.length > 44000) { cut++; return; }
@@ -3292,6 +3602,7 @@
                 'مرات اللصق': r.pasteCount,
                 'مغادرة التبويب': r.tabSwitches,
                 'خروج ملء الشاشة': r.fullscreenExits || 0,
+                'وقت خارج الامتحان (ثانية)': Math.round((r.awayMs || 0) / 1000),
                 'سرعة الكتابة (ك/د)': r.wpm,
                 'التنبيهات السلوكية واللغوية': r.alerts,
                 'ملخص التصحيح المرجعي': r.gradingReason,
@@ -3527,6 +3838,11 @@
                 if (!/^[a-z0-9_]{3,30}$/.test(username)) return fail('اسم المستخدم: حروف إنجليزية صغيرة وأرقام و _ بس، من ٣ لـ ٣٠ حرف.');
                 if (pass.length < 6) return fail('كلمة المرور ٦ أحرف على الأقل.');
                 if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('البريد الإلكتروني غير صحيح.');
+                if (email && !window.__noEmailConfirmed && typeof window.fbEmailSupportsReset === 'function' && !window.fbEmailSupportsReset(email)) {
+                    setBox('req-warn', 'تنبيه: نوع الإيميل ده (غير Gmail/Outlook/Hotmail/iCloud/Proton) مش هيدعم استرجاع كلمة المرور بلينك. هيتحفظ للنتايج والموافقة بس. دوس إرسال تاني لو موافق.');
+                    window.__noEmailConfirmed = true;
+                    return;
+                }
                 if (!email && !window.__noEmailConfirmed) {
                     setBox('req-warn', 'تنبيه: لم تدخل بريدًا إلكترونيًا. من غير إيميل مش هتقدر تسترجع حسابك لو نسيت كلمة المرور. اضغط "إرسال الطلب" مرة تانية لو عايز تكمل من غير إيميل.');
                     window.__noEmailConfirmed = true;
@@ -4178,7 +4494,7 @@
         // =========================================================================
         import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCoyMdAycrkpD54iG98Oh7wp2W-15aiyOg",
@@ -4489,7 +4805,7 @@
                 window.__keysReady = true;
                 // إصلاح ذاتي: امتحان فيه إظهار الدرجة ومفاتيحه موجودة لكن مستند الكشف ناقص
                 for (const ex of exams) {
-                    if (!ex.showScoreToStudent || ex._noKeys || toMigrate.has(ex.id)) continue;
+                    if (!(ex.showScoreToStudent || ex.reviewMode === 'marks' || ex.reviewMode === 'answers') || ex._noKeys || toMigrate.has(ex.id)) continue;
                     try {
                         const rs = await getDoc(doc(fbDb, 'examReveal', ex.id));
                         if (!rs.exists()) { const sp = splitExamForStorage(ex); if (sp.reveal) { sp.reveal.doctorUid = window.__myUid; await setDoc(doc(fbDb, 'examReveal', ex.id), sp.reveal); } }
@@ -4514,6 +4830,48 @@
         // الطالب: جلسة مجهولة لعرض درجته فوراً بعد التسليم (تحتاج تفعيل Anonymous في Authentication)
         window.fbEnsureAnon = async () => { try { await fbAuth.authStateReady(); if (fbAuth.currentUser) return fbAuth.currentUser.uid; const c = await signInAnonymously(fbAuth); return c.user.uid; } catch (e) { return null; } };
         window.fbCurrentAnonUid = () => (fbAuth.currentUser && fbAuth.currentUser.isAnonymous) ? fbAuth.currentUser.uid : null;
+
+        // ===== v28.40: جلسة الامتحان على السيرفر (sessions/<examId>_<studentId>) =====
+        // بداية المحاولة تتسجل بوقت السيرفر، والإجابات والعدّادات بتتحفظ بشكل متقطع، ولو الصفحة اتعملها refresh بترجع بنفس الوقت المتبقي.
+        const _SESS_PAYLOAD = (d) => ({ answers: d.answers, logs: d.logs, tabSwitches: d.tabSwitches, fullscreenExits: d.fullscreenExits, pasteCount: d.pasteCount, bigJumps: d.bigJumps, reloads: d.reloads, awayMs: d.awayMs || 0, savedAt: serverTimestamp() });
+        window.fbSessionEnter = async ({ exam, studentId, name, group, accessCode, orderJson }) => {
+            const sid = exam.id + '_' + studentId; const ref = doc(fbDb, 'sessions', sid);
+            const me = fbAuth.currentUser && fbAuth.currentUser.uid;
+            if (!me) throw new Error('no-auth');
+            let snap;
+            try { snap = await getDoc(ref); }
+            catch (e) { if (e && e.code === 'permission-denied') return { state: 'blocked' }; throw e; }
+            if (!snap.exists()) {
+                const init = { examId: exam.id, studentId, name: String(name).slice(0, 200), group: String(group).slice(0, 200), uid: me, doctorUid: exam.doctorUid, startedAt: serverTimestamp(), durMin: Number(exam.durationMin) || 0, order: orderJson, answers: '{}', logs: '[]', tabSwitches: 0, fullscreenExits: 0, pasteCount: 0, bigJumps: 0, reloads: 0, savedAt: serverTimestamp() };
+                if (accessCode) init.accessCode = String(accessCode);
+                await setDoc(ref, init);
+                return { state: 'new', sid, elapsedMs: 0 };
+            }
+            const d0 = snap.data();
+            if (d0.uid !== me) return { state: 'blocked' };
+            // نقيس وقت السيرفر الحالي بكتابة savedAt ثم قراءته (من غير الاعتماد على ساعة الجهاز)
+            try { await updateDoc(ref, { savedAt: serverTimestamp() }); }
+            catch (e) { if (e && e.code === 'permission-denied') return { state: 'ended', sid, data: d0 }; throw e; }
+            const d = (await getDoc(ref)).data();
+            const elapsedMs = d.savedAt.toMillis() - d.startedAt.toMillis();
+            const dur = Number(d.durMin) || 0;
+            if (dur > 0 && elapsedMs > dur * 60000 + 30000) return { state: 'ended', sid, data: d };
+            return { state: 'resume', sid, data: d, elapsedMs };
+        };
+        window.fbSessionSave = (sid, payload) => updateDoc(doc(fbDb, 'sessions', sid), _SESS_PAYLOAD(payload));
+        window.fbListMySessions = async () => {
+            const snap = await getDocs(query(collection(fbDb, 'sessions'), where('doctorUid', '==', window.__myUid)));
+            return snap.docs.map(d => Object.assign({ _id: d.id }, d.data()));
+        };
+        window.fbDeleteSession = (sid) => deleteDoc(doc(fbDb, 'sessions', sid));
+        // الدكتور يستلم الإجابات المحفوظة كتسليم (بعد انتهاء وقت الجلسة): تسليم + محاولة + مسح الجلسة في عملية واحدة
+        window.fbFinalizeSession = async (sid, sub) => {
+            const b = writeBatch(fbDb);
+            b.set(doc(fbDb, 'submissions', sid), sub);
+            b.set(doc(fbDb, 'attempts', sid), { examId: sub.examId, studentId: sub.id, createdAtMs: Date.now() });
+            b.delete(doc(fbDb, 'sessions', sid));
+            await b.commit();
+        };
         window.fbAddSubmission = (subId, data) => runTransaction(fbDb, async (tx) => {
             const eref = doc(fbDb, 'exams', data.examId);
             const es = await tx.get(eref);
@@ -4529,8 +4887,10 @@
             tx.set(doc(fbDb, 'submissions', subId), data);
             tx.set(aref, { examId: data.examId, studentId: data.id, createdAtMs: Date.now() });
             tx.update(eref, { subsCount: cnt + 1, lastSubId: subId });
+            tx.delete(doc(fbDb, 'sessions', subId));
         });
         window.fbMakeTicket = (examId, subId, uid) => setDoc(doc(fbDb, 'tickets', examId + '_' + uid), { examId: examId, subId: subId, createdAtMs: Date.now() });
+        window.fbGetSubmission = async (id) => { const s = await getDoc(doc(fbDb, 'submissions', id)); return s.exists() ? s.data() : null; };
         window.fbGetReveal = async (examId) => { const s = await getDoc(doc(fbDb, 'examReveal', examId)); return s.exists() ? s.data() : null; };
         window.fbResetExamSubs = async (examId) => {
             const c = (await getCountFromServer(query(collection(fbDb, 'submissions'), where('doctorUid', '==', window.__myUid), where('examId', '==', examId)))).data().count;
@@ -4630,12 +4990,35 @@
         window.fbSendReset = (email) => sendPasswordResetEmail(fbAuth, email);
         window.fbUsernameExists = async (username) => (await getDoc(doc(fbDb, 'usernames', username))).exists();
 
+        // v28.39: إيميل الدخول الداخلي (Auth) بيتولد لكل حساب لوحده، فالإيميل الحقيقي ممكن يتكرر. الإيميل الحقيقي بيتخزن في البروفايل.
+        // لو الإيميل من مزوّد بيدعم + (Gmail/Outlook/iCloud...) بنعمل alias: name+bl-<username>-<random>@domain فالرسايل (زي إعادة تعيين الباسورد) بتوصل لنفس الصندوق.
+        // غير كده: <username>.<random>@doctor.local (مفيش استرجاع ذاتي).
+        const _PLUS_DOMAINS = ['gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com', 'icloud.com', 'me.com', 'proton.me', 'protonmail.com', 'pm.me'];
+        const _rand6 = () => Array.from(crypto.getRandomValues(new Uint8Array(6))).map(b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+        function _makeAuthEmail(username, realEmail) {
+            const r = _rand6();
+            const m = String(realEmail || '').toLowerCase().match(/^([^\s@+]+)(?:\+[^\s@]*)?@([^\s@]+)$/);
+            if (m && _PLUS_DOMAINS.includes(m[2])) return m[1] + '+bl-' + username + '-' + r + '@' + m[2];
+            return username + '.' + r + '@doctor.local';
+        }
+        window.fbEmailSupportsReset = (e) => { const m = String(e || '').toLowerCase().match(/@([^\s@]+)$/); return !!(m && _PLUS_DOMAINS.includes(m[1])); };
+        function _parseAuthEmail(authMail) {
+            authMail = String(authMail || '').toLowerCase();
+            let m = authMail.match(/^([^@+]+)\+bl-([a-z0-9_]+)-[a-z0-9]{6}@(.+)$/);
+            if (m) return { real: m[1] + '@' + m[3], uname: m[2], synthetic: true };
+            m = authMail.match(/^([a-z0-9_]+)\.[a-z0-9]{6}@doctor\.local$/);
+            if (m) return { real: '', uname: m[1], synthetic: true };
+            if (/@doctor\.local$/.test(authMail)) return { real: '', uname: authMail.replace(/@doctor\.local$/, ''), synthetic: false };
+            return { real: authMail, uname: '', synthetic: false };
+        }
+
         window.fbCreateDoctorRequest = async ({ name, email, username, password, existingUid }) => {
             if (existingUid && fbAuth.currentUser && fbAuth.currentUser.uid === existingUid) {
                 const authMail = (fbAuth.currentUser.email || '').toLowerCase();
-                const realMail = authMail && !/@doctor\.local$/i.test(authMail) ? authMail : '';
-                let uname = authMail.replace(/@doctor\.local$/i, '');
-                if (realMail) uname = (username || '').trim().toLowerCase() || authMail.split('@')[0].replace(/[^a-z0-9_]/g, '_').slice(0, 30);
+                const pa = _parseAuthEmail(authMail);
+                const realMail = pa.real;
+                let uname = pa.uname;
+                if (!uname && realMail) uname = (username || '').trim().toLowerCase() || authMail.split('@')[0].replace(/[^a-z0-9_]/g, '_').slice(0, 30);
                 if (!uname) uname = username;
                 const mode0 = await _readMode(fbDb);
                 if (mode0 === 'delete') { const e0 = new Error('requests closed'); e0.code = 'app/requests-closed'; throw e0; }
@@ -4655,7 +5038,7 @@
             }
             const taken = await getDoc(doc(fbDb, 'usernames', username));
             if (taken.exists()) { const e = new Error('username taken'); e.code = 'app/username-taken'; throw e; }
-            const authEmail = email || (username + '@doctor.local');
+            const authEmail = _makeAuthEmail(username, email);
             const secondary = initializeApp(firebaseConfig, 'doctorSignup' + Date.now());
             try {
                 const secAuth = getAuth(secondary);
