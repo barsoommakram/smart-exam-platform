@@ -1124,6 +1124,7 @@
             // على شاشة دخول الدكتور: نخفي تبويب الطالب (الشعار هو الرجوع)
             const stuTab = document.getElementById('tab-student');
             if (stuTab) stuTab.classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn || tabName === 'doctor-auth');
+            syncNavVisibility();
             if (tabName === 'doctor-auth') showRequestForm(!!window.__signedInNoProfileUid);
             if (tabName === 'student') { loadApprovedDoctors(); populateStudentExamSelector(); }
             if (tabName === 'doctor') populateDoctorWorkspace();
@@ -1196,7 +1197,7 @@
             const tabAdmin = document.getElementById('tab-admin');
             if (tabAdmin) tabAdmin.classList.toggle('hidden', !isAdminLoggedIn);
             const tabDoc = document.getElementById('tab-doctor');
-            if (tabDoc) tabDoc.classList.toggle('hidden', isAdminLoggedIn && !isDoctorLoggedIn);
+            if (tabDoc) tabDoc.classList.toggle('hidden', !isDoctorLoggedIn);  // قبل الدخول: زر "دخول الدكتور" الخارجي هو المدخل الوحيد
             document.getElementById('tab-student').classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn);
             if (tabDoctorLabel) tabDoctorLabel.textContent = isDoctorLoggedIn ? 'امتحاناتي' : 'دخول الدكتور';
             if (isDoctorLoggedIn || isAdminLoggedIn) {
@@ -1208,6 +1209,15 @@
                 badge.classList.add('hidden');
                 badge.classList.remove('flex');
             }
+            syncNavVisibility();
+        }
+
+        // شريط التبويبات يظهر بس لو فيه تبويب غير "بوابة الطالب" (يعني بعد دخول دكتور/أدمن)
+        function syncNavVisibility() {
+            const nav = document.querySelector('nav.flex.items-center.bg-slate-100');
+            if (!nav) return;
+            const anyOther = Array.from(nav.querySelectorAll('button.nav-btn')).some(b => b.id !== 'tab-student' && !b.classList.contains('hidden'));
+            nav.classList.toggle('hidden', !anyOther);
         }
 
         // =========================================================================
