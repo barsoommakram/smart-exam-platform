@@ -185,6 +185,17 @@
     <div class="pentagon p3"></div>
     <div class="pentagon p4"></div>
 
+<div id="session-restore" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-slate-950 text-white text-sm font-bold" dir="rtl">جاري استرجاع جلستك...</div>
+    <script>try { if (localStorage.getItem('dr_session_hint') === '1') { document.getElementById('session-restore').classList.remove('hidden'); setTimeout(function () { var e = document.getElementById('session-restore'); if (e) e.classList.add('hidden'); }, 10000); } } catch (e) {}</script>
+    <div id="email-nudge" class="hidden fixed bottom-4 left-4 z-40 max-w-xs bg-slate-900 border border-amber-500/50 text-white rounded-2xl shadow-2xl p-3.5 flex items-start gap-3" dir="rtl" role="status">
+        <i data-lucide="mail-warning" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-extrabold">لم يتم إدخال بريد</p>
+            <p class="text-[11px] text-slate-300 mt-0.5">أضف إيميلك عشان نتايج الامتحانات توصلك.</p>
+            <button type="button" onclick="openEmailTabFromNudge()" class="mt-2 bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">افتح تبويب البريد</button>
+        </div>
+        <button type="button" onclick="dismissEmailNudge()" aria-label="إغلاق" class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
+    </div>
     <!-- الشريط العلوي -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -366,7 +377,7 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم الطالب</label>
-                        <input type="text" id="student-name" placeholder="اكتب اسمك" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <input type="text" id="student-name" placeholder="اسم الطالب" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -576,6 +587,27 @@
                 <div class="bg-white rounded-2xl border-2 border-amber-400 p-4 shadow-sm"><span class="text-2xl font-extrabold text-amber-600 block" id="adm-stat-pending">-</span><span class="text-[11px] text-slate-500 block mt-1">طلبات مستنية موافقتك</span></div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold text-primary-700 block" id="adm-stat-exams">-</span><span class="text-[11px] text-slate-500 block mt-1">إجمالي الامتحانات المنشأة</span></div>
                 <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold text-emerald-600 block" id="adm-stat-results">-</span><span class="text-[11px] text-slate-500 block mt-1">إجمالي النتائج المستلمة</span></div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="sliders-horizontal" class="w-5 h-5 text-primary-600"></i> التحكم في طلبات الانضمام</h2>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="approveAllRequests()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5"><i data-lucide="check-check" class="w-4 h-4"></i><span>قبول كل الطلبات</span></button>
+                    <button onclick="deleteAllRequests()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5"><i data-lucide="trash-2" class="w-4 h-4"></i><span>حذف كل الطلبات</span></button>
+                </div>
+                <div class="space-y-2.5">
+                    <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer">
+                        <span class="text-sm font-bold text-slate-800">قبول الطلبات القادمة تلقائيًا</span>
+                        <input type="checkbox" id="mode-accept" onchange="onRequestsModeToggle('accept', this.checked)" class="w-5 h-5 accent-emerald-600">
+                    </label>
+                    <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer">
+                        <span class="text-sm font-bold text-slate-800">حذف الطلبات القادمة تلقائيًا</span>
+                        <input type="checkbox" id="mode-delete" onchange="onRequestsModeToggle('delete', this.checked)" class="w-5 h-5 accent-rose-600">
+                    </label>
+                </div>
+                <div id="mode-warn-accept" class="hidden rounded-xl border-2 border-rose-500 bg-rose-50 p-3 text-xs font-bold text-rose-700 leading-relaxed">تحذير: القبول التلقائي شغال. أي شخص يفتح صفحة الطلب هيبقى دكتور معتمد فورًا ويقدر ينشئ امتحانات. اقفله أول ما تخلص.</div>
+                <div id="mode-warn-delete" class="hidden rounded-xl border-2 border-amber-500 bg-amber-50 p-3 text-xs font-bold text-amber-800 leading-relaxed">الحذف التلقائي شغال. أي طلب جديد هيترفض ومش هيتسجل (ومفيش حد جديد يقدر يطلب الانضمام).</div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">الخيارين مش بيشتغلوا مع بعض (تشغيل واحد بيقفل التاني). بيتطبقوا على الطلبات الجديدة بس. الطلبات الموجودة بالفعل ما بتتأثرش.</p>
             </div>
 
             <div class="bg-white rounded-2xl border-2 border-amber-400 p-6 shadow-md space-y-3">
@@ -1121,7 +1153,7 @@
                 populateReportFilter();
                 renderExcelTable();
             }
-            if (isDoctorLoggedIn && ['doctor', 'stats', 'email', 'reports'].includes(tabName)) { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
+            if ((isDoctorLoggedIn || isAdminLoggedIn) && ['doctor', 'stats', 'email', 'reports', 'admin'].includes(tabName)) { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
             refreshIcons();
             return tabName;
         }
@@ -1167,6 +1199,7 @@
         }
 
         async function logoutDoctor() {
+            try { localStorage.removeItem('dr_session_hint'); } catch (e) {}
             try { if (typeof window.doctorSignOut === 'function') await window.doctorSignOut(); } catch (e) {}
             showToast('تم تسجيل الخروج والعودة إلى بوابة الطالب', 'info');
             setTimeout(() => { try { location.reload(); } catch (e) {} }, 700);
@@ -2902,7 +2935,20 @@
             showToast('تم مسح سجل النتائج', 'info');
         }
 
+        function hideSessionRestore() { const e = document.getElementById('session-restore'); if (e) e.classList.add('hidden'); }
+        window.__emailNudgeDismissed = false;
+        function refreshEmailNudge() {
+            const el = document.getElementById('email-nudge'); if (!el) return;
+            const saved = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
+            const show = isDoctorLoggedIn && !saved && !window.__emailNudgeDismissed && !!window.__emailChecked;
+            el.classList.toggle('hidden', !show);
+            if (show) refreshIcons();
+        }
+        function dismissEmailNudge() { window.__emailNudgeDismissed = true; refreshEmailNudge(); }
+        function openEmailTabFromNudge() { window.__emailNudgeDismissed = true; refreshEmailNudge(); switchTab('email'); }
+
         function updateNotifyEmailStatus() {
+            refreshEmailNudge();
             const el = document.getElementById('notify-email-status'); if (!el) return;
             const saved = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
             if (saved) { el.textContent = 'الإيميل المحفوظ: ' + saved; el.className = 'text-xs font-bold mt-2 text-emerald-600'; }
@@ -3326,15 +3372,16 @@
             if (typeof window.fbCreateDoctorRequest !== 'function') return fail('الخدمة غير متاحة حالياً — تحقق من الإنترنت.');
             btn.disabled = true;
             try {
-                await window.fbCreateDoctorRequest({ name, email, username, password: pass, existingUid: window.__signedInNoProfileUid || null });
-                showToast('تم إرسال طلبك للأدمن — هتقدر تدخل أول ما يوافق', 'success');
+                const st = await window.fbCreateDoctorRequest({ name, email, username, password: pass, existingUid: window.__signedInNoProfileUid || null });
+                showToast(st === 'approved' ? 'تم قبول حسابك — تقدر تسجل دخول دلوقتي' : 'تم إرسال طلبك للأدمن — هتقدر تدخل أول ما يوافق', 'success');
                 ['req-name', 'req-email', 'req-username', 'req-password'].forEach(i => { document.getElementById(i).value = ''; });
                 window.__signedInNoProfileUid = null;
                 showRequestForm(false);
                 switchTab('student');
             } catch (e) {
                 const code = (e && e.code) || '';
-                if (code === 'app/username-taken') fail('اسم المستخدم ده محجوز، اختار اسم تاني.');
+                if (code === 'app/requests-closed') fail('استقبال طلبات انضمام جديدة مقفول حاليًا. تواصل مع الأدمن.');
+                else if (code === 'app/username-taken') fail('اسم المستخدم ده محجوز، اختار اسم تاني.');
                 else if (code === 'auth/email-already-in-use') fail('اسم المستخدم أو الإيميل ده مرتبط بحساب قديم. لو ده حسابك سجل دخول بيه من شاشة الدخول وابعت طلب جديد من هناك.');
                 else if (code === 'permission-denied' || /permission/i.test(String(e))) fail('تعذر تسجيل الطلب. ممكن يكون الاسم محجوز أو الطلب اتسجل قبل كده.');
                 else fail('تعذر إرسال الطلب — تحقق من الإنترنت وحاول تاني.');
@@ -3430,9 +3477,58 @@
             return `من ${Math.floor(hrs / 24)} يوم`;
         }
 
+        // ---------- وضع طلبات الانضمام (الأدمن) ----------
+        function applyRequestsModeUI(mode) {
+            const a = document.getElementById('mode-accept'), d = document.getElementById('mode-delete');
+            if (a) a.checked = mode === 'accept';
+            if (d) d.checked = mode === 'delete';
+            const wa = document.getElementById('mode-warn-accept'), wd = document.getElementById('mode-warn-delete');
+            if (wa) wa.classList.toggle('hidden', mode !== 'accept');
+            if (wd) wd.classList.toggle('hidden', mode !== 'delete');
+        }
+        async function refreshRequestsMode() {
+            if (typeof window.fbGetRequestsMode !== 'function') return;
+            try { applyRequestsModeUI(await window.fbGetRequestsMode()); } catch (e) { applyRequestsModeUI('off'); }
+        }
+        async function onRequestsModeToggle(which, on) {
+            const next = on ? which : 'off';
+            if (next === 'accept') {
+                const ok = await showConfirmModal({ title: 'تشغيل القبول التلقائي', message: 'تحذير أمني: طول ما ده شغال، أي حد يقدم طلب هيبقى دكتور معتمد فورًا ويقدر ينشئ امتحانات من غير موافقتك. متأكد؟', confirmLabel: 'أيوه، شغّله' });
+                if (!ok) { await refreshRequestsMode(); return; }
+            }
+            try {
+                await window.fbSetRequestsMode(next);
+                applyRequestsModeUI(next);
+                showToast(next === 'accept' ? 'القبول التلقائي شغال — اقفله لما تخلص' : next === 'delete' ? 'الحذف التلقائي للطلبات الجديدة شغال' : 'اتقفل الوضع التلقائي — الطلبات الجديدة هتستنى مراجعتك', next === 'accept' ? 'warning' : 'info');
+            } catch (e) {
+                showToast('تعذر تغيير الوضع — لازم تنشر القواعد الجديدة (firestore-v28.16.rules) الأول', 'danger');
+                await refreshRequestsMode();
+            }
+        }
+        async function approveAllRequests() {
+            const pending = (window.__adminDoctors || []).filter(d => d.status !== 'approved');
+            if (!pending.length) { showToast('مفيش طلبات مستنية', 'info'); return; }
+            const ok = await showConfirmModal({ title: 'قبول كل الطلبات', message: `هتقبل ${pending.length} طلب، وكلهم هيبقوا دكاترة معتمدين ويقدروا ينشئوا امتحانات. متأكد؟`, confirmLabel: 'اقبل الكل' });
+            if (!ok) return;
+            let done = 0, failed = 0;
+            for (const d of pending) { try { await window.fbApproveDoctor(d.uid); done++; } catch (e) { failed++; } }
+            showToast(failed ? `اتقبل ${done} وفشل ${failed}` : `تم قبول ${done} طلب`, failed ? 'warning' : 'success');
+            loadAdminPanel();
+        }
+        async function deleteAllRequests() {
+            const pending = (window.__adminDoctors || []).filter(d => d.status !== 'approved');
+            if (!pending.length) { showToast('مفيش طلبات مستنية', 'info'); return; }
+            const ok = await showConfirmModal({ title: 'حذف كل الطلبات', message: `هتتحذف ${pending.length} طلب نهائيًا، وأصحابها مش هيقدروا يدخلوا. الدكاترة المعتمدين ما بيتأثروش. متأكد؟`, confirmLabel: 'احذف الكل' });
+            if (!ok) return;
+            let done = 0, failed = 0;
+            for (const d of pending) { try { await window.fbRejectDoctor(d.uid); done++; } catch (e) { failed++; } }
+            showToast(failed ? `اتحذف ${done} وفشل ${failed}` : `تم حذف ${done} طلب`, failed ? 'warning' : 'info');
+            loadAdminPanel();
+        }
+
         async function loadAdminPanel() {
             if (!isAdminLoggedIn || typeof window.fbAdminListData !== 'function') return;
-            try { renderAdminPanel(await window.fbAdminListData()); }
+            try { renderAdminPanel(await window.fbAdminListData()); refreshRequestsMode(); }
             catch (e) { console.warn('admin panel failed', e); showToast('تعذر تحميل بيانات الأدمن — تأكد من نشر القواعد الجديدة', 'danger'); }
         }
 
@@ -3655,7 +3751,7 @@
         // ربط Firebase: Firestore للامتحانات والنتائج + Firebase Auth لدخول الدكتور
         // =========================================================================
         import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
         import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -3670,6 +3766,8 @@
 
         const fbApp = initializeApp(firebaseConfig);
         const fbAuth = getAuth(fbApp);
+        // الجلسة تفضل محفوظة بعد التحديث وقفل المتصفح لحد ما الدكتور يدوس تسجيل الخروج
+        const persistReady = setPersistence(fbAuth, browserLocalPersistence).catch((e) => console.warn('persistence failed', e));
         const fbDb = getFirestore(fbApp);
         let resultsUnsub = null;
         let subsUnsub = null;
@@ -3721,11 +3819,11 @@
         }
 
         // حالة الدخول: أدمن (وهو دكتور كمان لو معتمد) أو دكتور معتمد أو طلب قيد المراجعة
-        onAuthStateChanged(fbAuth, (user) => { handleAuthUser(user).catch(e => console.warn('auth flow failed', e)); });
+        onAuthStateChanged(fbAuth, (user) => { handleAuthUser(user).catch(e => console.warn('auth flow failed', e)).finally(() => { try { hideSessionRestore(); } catch (e) {} }); });
 
         async function handleAuthUser(user) {
             resolveFirstAuth(user || null);
-            if (user && user.isAnonymous) return;
+            if (user && user.isAnonymous) { try { localStorage.removeItem('dr_session_hint'); } catch (e) {} return; }
             if (!user) { resetToVisitor(); return; }
 
             window.__myUid = user.uid;
@@ -3765,6 +3863,8 @@
             window.__myProfile = prof || null;
             window.__myDoctorName = asAdmin ? ((prof && prof.name) || 'الأدمن العام') : (prof.name || '');
             window.__signedInNoProfileUid = null;
+            try { localStorage.setItem('dr_session_hint', '1'); } catch (e) {}
+            window.__emailNudgeDismissed = false; window.__emailChecked = false;
             updateDoctorAuthUI();
             updateFrozenBanner();
             const firstAuthEvent = !window.__authInit;
@@ -3776,24 +3876,21 @@
             }
             await loadDoctorExams(user.uid);
             populateDoctorWorkspace();
-            if (asAdmin) {
-                switchTab('admin');
-            } else if (firstAuthEvent && !(sessionState && sessionState.active)) {
-                let last = 'reports';
-                try { last = localStorage.getItem('doctor_last_tab_v1') || 'reports'; } catch (e) {}
-                if (!['doctor', 'stats', 'email', 'reports'].includes(last)) last = 'reports';
-                switchTab(last);
-            } else {
-                switchTab('reports');
-            }
+            // بعد التحديث (F5) أو فتح المتصفح من جديد: نرجع لآخر تاب كان مفتوح
+            let last = null;
+            try { last = localStorage.getItem('doctor_last_tab_v1'); } catch (e) {}
+            const lastOk = (last === 'admin') ? asAdmin : ['doctor', 'stats', 'email', 'reports'].includes(last);
+            if (firstAuthEvent && !(sessionState && sessionState.active) && lastOk) switchTab(last);
+            else switchTab(asAdmin ? 'admin' : 'reports');
             showToast(`أهلاً ${prof.name || 'بك'}`, 'success');
             doctorSyncKeys();
             getDoc(doc(fbDb, 'settings', 'doc_' + user.uid)).then(s => {
                 const v = (s.exists() && typeof s.data().notifyEmail === 'string') ? s.data().notifyEmail : '';
                 localStorage.setItem('doctor_notify_email_v1', v);
                 const f = document.getElementById('doc-notify-email'); if (f) f.value = v;
+                window.__emailChecked = true;
                 updateNotifyEmailStatus();
-            }).catch(() => {});
+            }).catch(() => { window.__emailChecked = true; updateNotifyEmailStatus(); });
             if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
             resultsUnsub = onSnapshot(query(collection(fbDb, 'results'), where('doctorUid', '==', user.uid)), (snap) => {
                 examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
@@ -3812,6 +3909,7 @@
         }
 
         function resetToVisitor() {
+            try { localStorage.removeItem('dr_session_hint'); } catch (e) {}
             isDoctorLoggedIn = false;
             isAdminLoggedIn = false;
             window.doctorEmail = '';
@@ -3833,7 +3931,7 @@
         }
 
         // واجهات يستخدمها الكود الرئيسي
-        window.doctorSignIn = (email, pass) => signInWithEmailAndPassword(fbAuth, email, pass);
+        window.doctorSignIn = async (email, pass) => { await persistReady; return signInWithEmailAndPassword(fbAuth, email, pass); };
         window.doctorSignOut = () => signOut(fbAuth);
         // حفظ الامتحان: الإجابات ونموذج الإجابة والمرجع في مستند خاص بالدكتور، والمستند العام بدون إجابات
         window.fbSaveExam = async (exam) => {
@@ -4018,16 +4116,19 @@
                 let uname = authMail.replace(/@doctor\.local$/i, '');
                 if (realMail) uname = (username || '').trim().toLowerCase() || authMail.split('@')[0].replace(/[^a-z0-9_]/g, '_').slice(0, 30);
                 if (!uname) uname = username;
+                const mode0 = await _readMode(fbDb);
+                if (mode0 === 'delete') { const e0 = new Error('requests closed'); e0.code = 'app/requests-closed'; throw e0; }
                 const b0 = writeBatch(fbDb);
-                const prof0 = { name, username: uname, status: 'pending', createdAtMs: Date.now() };
+                const prof0 = { name, username: uname, status: mode0 === 'accept' ? 'approved' : 'pending', createdAtMs: Date.now() };
                 if (realMail) prof0.email = realMail;
                 b0.set(doc(fbDb, 'doctors', existingUid), prof0);
                 let needUname = true;
                 try { const us = await getDoc(doc(fbDb, 'usernames', uname)); if (us.exists()) needUname = false; } catch (e) {}
                 if (needUname) b0.set(doc(fbDb, 'usernames', uname), { email: authMail, uid: existingUid });
                 await b0.commit();
+                if (prof0.status === 'approved') { try { await setDoc(doc(fbDb, 'publicDoctors', existingUid), { name }); } catch (e) {} }
                 await signOut(fbAuth);
-                return;
+                return prof0.status;
             }
             const taken = await getDoc(doc(fbDb, 'usernames', username));
             if (taken.exists()) { const e = new Error('username taken'); e.code = 'app/username-taken'; throw e; }
@@ -4037,8 +4138,13 @@
                 const secAuth = getAuth(secondary);
                 const cred = await createUserWithEmailAndPassword(secAuth, authEmail, password);
                 const sdb = getFirestore(secondary);
+                const mode = await _readMode(sdb);
+                if (mode === 'delete') {
+                    try { await deleteUser(cred.user); } catch (delErr) { console.warn('orphan cleanup failed', delErr); }
+                    const e1 = new Error('requests closed'); e1.code = 'app/requests-closed'; throw e1;
+                }
                 const b = writeBatch(sdb);
-                const profile = { name, username, status: 'pending', createdAtMs: Date.now() };
+                const profile = { name, username, status: mode === 'accept' ? 'approved' : 'pending', createdAtMs: Date.now() };
                 if (email) profile.email = email;
                 b.set(doc(sdb, 'doctors', cred.user.uid), profile);
                 b.set(doc(sdb, 'usernames', username), { email: authEmail, uid: cred.user.uid });
@@ -4049,7 +4155,9 @@
                     try { await deleteUser(cred.user); } catch (delErr) { console.warn('orphan cleanup failed', delErr); }
                     throw commitErr;
                 }
+                if (profile.status === 'approved') { try { await setDoc(doc(sdb, 'publicDoctors', cred.user.uid), { name }); } catch (e) { console.warn('publicDoctors self entry failed', e); } }
                 await signOut(secAuth);
+                return profile.status;
             } finally {
                 try { await deleteApp(secondary); } catch (e) {}
             }
@@ -4061,6 +4169,14 @@
             return snap.docs.map(d => ({ uid: d.id, name: d.data().name || '' }))
                 .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'));
         };
+
+        window.fbGetRequestsMode = async () => {
+            const s = await getDoc(doc(fbDb, 'config', 'requestsMode'));
+            const m = s.exists() ? s.data().mode : 'off';
+            return (m === 'accept' || m === 'delete') ? m : 'off';
+        };
+        window.fbSetRequestsMode = (mode) => setDoc(doc(fbDb, 'config', 'requestsMode'), { mode });
+        const _readMode = async (db) => { try { const s = await getDoc(doc(db, 'config', 'requestsMode')); const m = s.exists() ? s.data().mode : 'off'; return (m === 'accept' || m === 'delete') ? m : 'off'; } catch (e) { return 'off'; } };
 
         window.fbApproveDoctor = async (uid) => {
             const s = await getDoc(doc(fbDb, 'doctors', uid));
@@ -4217,5 +4333,3 @@
     </script>
 </body>
 </html>
-
-    
