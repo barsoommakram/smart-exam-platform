@@ -3829,12 +3829,26 @@
             window.__myUid = user.uid;
             window.doctorEmail = user.email || '';
             let adminSnap = null, docSnap = null;
-            try {
-                adminSnap = await getDoc(doc(fbDb, 'admins', user.uid));
-                docSnap = await getDoc(doc(fbDb, 'doctors', user.uid));
-            } catch (e) {
-                showToast('تعذر التحقق من الصلاحيات — تأكد من نشر قواعد قاعدة البيانات الجديدة', 'danger');
-                try { await signOut(fbAuth); } catch (e2) {}
+            let lastErr = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    adminSnap = await getDoc(doc(fbDb, 'admins', user.uid));
+                    docSnap = await getDoc(doc(fbDb, 'doctors', user.uid));
+                    lastErr = null; break;
+                } catch (e) {
+                    lastErr = e;
+                    if (e && e.code === 'permission-denied') break;
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+            if (lastErr) {
+                if (lastErr.code === 'permission-denied') {
+                    showToast('تعذر التحقق من الصلاحيات — تأكد من نشر قواعد قاعدة البيانات الجديدة', 'danger');
+                    try { await signOut(fbAuth); } catch (e2) {}
+                } else {
+                    // مشكلة شبكة مؤقتة: نسيب الجلسة محفوظة ونطلب تحديث، ما نخرجش الدكتور
+                    showToast('الشبكة ضعيفة — جلستك محفوظة، حدّث الصفحة بعد لحظات', 'warning');
+                }
                 return;
             }
             const isAdm = !!(adminSnap && adminSnap.exists());
@@ -4032,7 +4046,7 @@
             }
         }
         // الطالب: جلسة مجهولة لعرض درجته فوراً بعد التسليم (تحتاج تفعيل Anonymous في Authentication)
-        window.fbEnsureAnon = async () => { try { if (fbAuth.currentUser) return fbAuth.currentUser.uid; const c = await signInAnonymously(fbAuth); return c.user.uid; } catch (e) { return null; } };
+        window.fbEnsureAnon = async () => { try { await fbAuth.authStateReady(); if (fbAuth.currentUser) return fbAuth.currentUser.uid; const c = await signInAnonymously(fbAuth); return c.user.uid; } catch (e) { return null; } };
         window.fbCurrentAnonUid = () => (fbAuth.currentUser && fbAuth.currentUser.isAnonymous) ? fbAuth.currentUser.uid : null;
         window.fbAddSubmission = (subId, data) => runTransaction(fbDb, async (tx) => {
             const eref = doc(fbDb, 'exams', data.examId);
