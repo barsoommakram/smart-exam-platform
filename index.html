@@ -654,6 +654,14 @@
                 <button onclick="runLegacyMigration()" id="adm-migrate-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">تحميل نسخة احتياطية + ربط البيانات القديمة</button>
                 <p class="text-[11px] text-slate-400">بينزل ملف نسخة احتياطية الأول، وبعدين يضيف حقل الدكتور بس من غير ما يمسح أو يغير أي بيانات.</p>
             </div>
+
+            <div id="adm-orphan-card" class="bg-white rounded-2xl border-2 border-amber-300 p-6 shadow-sm space-y-3">
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="eraser" class="w-5 h-5 text-amber-500"></i> تنظيف البيانات اليتيمة</h2>
+                <p class="text-xs text-slate-600 leading-relaxed">بيدور على بيانات فاضلة من امتحانات أو دكاترة اتحذفوا قبل كده: محاولات، تسليمات، تذاكر دخول، مفاتيح، علامات إرسال تلقائي، ونتايج مالهاش دكتور. الفحص بيقرا بس ومابيمسحش حاجة. المسح بعد تأكيدك. ما بيلمسش الامتحانات الموجودة، ولا أي نتيجة ظاهرة لدكتور موجود، ولا حسابات الدكاترة، ولا سجلات الأدمن.</p>
+                <button onclick="scanOrphans()" id="adm-orphan-scan" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">افحص (من غير مسح)</button>
+                <div id="adm-orphan-result" class="hidden text-xs text-slate-700 leading-relaxed bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1"></div>
+                <button onclick="cleanOrphans()" id="adm-orphan-clean" class="hidden w-full bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">امسح البيانات اليتيمة</button>
+            </div>
         </section>
 
         <section id="view-stats" class="hidden space-y-6">
@@ -1495,6 +1503,31 @@
             });
         }
 
+        function showDeleteExamChoice(examTitle, nResults) {
+            return new Promise(resolve => {
+                const ov = document.createElement('div');
+                ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.dir = 'rtl';
+                ov.style.cssText = 'position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,15,.72);backdrop-filter:blur(4px)';
+                ov.innerHTML = `
+                    <div style="background:#101828;border:1px solid #1f2a44;color:#e5e7eb;border-radius:18px;max-width:440px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+                        <div style="font-weight:800;font-size:16px;color:#fff;margin-bottom:8px">حذف الامتحان</div>
+                        <div data-msg style="font-size:13px;line-height:1.8;color:#cbd5e1;margin-bottom:16px"></div>
+                        <div style="display:flex;flex-direction:column;gap:9px">
+                            <button type="button" data-act="all" style="background:#e11d48;color:#fff;font-weight:700;font-size:13px;padding:10px 16px;border-radius:12px;border:0;cursor:pointer;text-align:center">حذف الامتحان وبيانات الطلاب (النتائج والتسليمات)</button>
+                            <button type="button" data-act="exam" style="background:#f59e0b;color:#1f1300;font-weight:700;font-size:13px;padding:10px 16px;border-radius:12px;border:0;cursor:pointer;text-align:center">حذف الامتحان فقط وإبقاء بيانات الطلاب</button>
+                            <button type="button" data-act="cancel" style="background:#0b0f19;color:#e5e7eb;font-weight:700;font-size:13px;padding:10px 16px;border-radius:12px;border:1px solid #334155;cursor:pointer;text-align:center">إلغاء</button>
+                        </div>
+                    </div>`;
+                ov.querySelector('[data-msg]').textContent = `الامتحان "${examTitle || ''}" عليه ${nResults} نتيجة محفوظة. اختار: تحذف الامتحان مع بيانات طلابه نهائيًا، أو تحذف الامتحان بس وتفضل النتائج في السجل. مفيش تراجع.`;
+                const close = v => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(v); };
+                const onKey = e => { if (e.key === 'Escape') close('cancel'); };
+                ov.addEventListener('click', e => { if (e.target === ov) close('cancel'); const a = e.target.dataset && e.target.dataset.act; if (a) close(a); });
+                document.addEventListener('keydown', onKey);
+                document.body.appendChild(ov);
+                ov.querySelector('[data-act=cancel]').focus();
+            });
+        }
+
         function duplicateCurrentExam() {
             if (!getCurrentDoctorExam()) return;
             syncCurrentExamFields();
@@ -1512,15 +1545,23 @@
         async function deleteCurrentExam() {
             if (!getCurrentDoctorExam()) return;
             const ex0 = getCurrentDoctorExam();
-            const okDel = await showConfirmModal({ title: 'حذف الامتحان', message: `هل أنت متأكد من حذف الامتحان "${ex0 ? ex0.title : ''}"؟ لا يمكن التراجع عن الحذف.`, confirmLabel: 'تأكيد الحذف', cancelLabel: 'إلغاء' });
-            if (!okDel) return;
+            const nRes = examRecords.filter(r => r.examId === ex0.id).length;
+            const choice = await showDeleteExamChoice(ex0 ? ex0.title : '', nRes);
+            if (choice !== 'all' && choice !== 'exam') return;
             const removedId = currentDoctorExamId;
             exams = exams.filter(e => e.id !== currentDoctorExamId);
             currentDoctorExamId = exams[0] ? exams[0].id : null;
             saveState();
             populateDoctorWorkspace();
-            try { if (typeof window.fbDeleteExam === 'function') await window.fbDeleteExam(removedId); } catch (e) {}
-            showToast('تم حذف الامتحان المحدد', 'info');
+            if (choice === 'all') { examRecords = examRecords.filter(r => r.examId !== removedId); renderExcelTable(); try { renderStatsTab(); } catch (e) {} }
+            let failedN = 0;
+            try { failedN = await window.fbPurgeExam(removedId, choice === 'all'); } catch (e) { failedN = 1; console.warn('purge failed', e); }
+            if (failedN) { showToast(`تم حذف الامتحان لكن ${failedN} عنصر من بياناته ما اتحذفش من القاعدة — جرّب تاني`, 'warning'); }
+            else if (choice === 'all') {
+                showToast('تم حذف الامتحان وبيانات طلابه من القاعدة', 'info');
+            } else {
+                showToast('تم حذف الامتحان وبيانات الطلاب فضلت في السجل', 'info');
+            }
         }
 
         async function extractPdfText(file) {
@@ -1888,7 +1929,7 @@
             clearTimeout(examSyncTimer);
             let failed = 0;
             for (const ex of mine) {
-                try { await window.fbDeleteExam(ex.id); } catch (e) { failed++; console.warn('delete failed', ex.id, e); }
+                try { const f = await window.fbPurgeExam(ex.id, false); if (f) failed++; } catch (e) { failed++; console.warn('delete failed', ex.id, e); }
             }
             exams = [];
             try { await loadDoctorExams(window.__myUid); } catch (e) {}
@@ -2929,19 +2970,14 @@
 
 
         async function clearExamRecords() {
+            if (!examRecords.length) { showToast('مفيش نتايج تتمسح', 'info'); return; }
+            const okClr = await showConfirmModal({ title: 'مسح السجل', message: `هتمسح كل نتايج امتحاناتك (${examRecords.length} نتيجة) نهائيًا. مفيش تراجع. متأكد؟`, confirmLabel: 'امسح السجل', cancelLabel: 'إلغاء' });
+            if (!okClr) return;
             const toRemove = examRecords.slice();
             examRecords = [];
             document.getElementById('latest-result-card').classList.add('hidden');
             renderExcelTable();
-            if (typeof window.fbDeleteResult === 'function') {
-                for (const rec of toRemove) {
-                    try {
-                        if (rec._fid) await window.fbDeleteResult(rec._fid);
-                        if (typeof window.fbDeleteAttempt === 'function') await window.fbDeleteAttempt(`${rec.examId}_${rec.id}`);
-                        if (typeof window.fbDeleteSubmission === 'function') await window.fbDeleteSubmission(`${rec.examId}_${rec.id}`);
-                    } catch (e) {}
-                }
-            }
+            try { const f = await window.fbPurgeRecords(toRemove); if (f) showToast(`${f} عنصر ما اتحذفش من القاعدة — جرّب تاني`, 'warning'); } catch (e) { console.warn('purge records failed', e); }
             // تحرير حصة التسليمات: نخلي العداد = عدد التسليمات الباقية فعلاً
             if (typeof window.fbResetExamSubs === 'function') {
                 const ids = Array.from(new Set(toRemove.map(r => r.examId).filter(Boolean)));
@@ -3709,6 +3745,45 @@
             finally { deleteBusy = false; loadAdminPanel(); }
         }
 
+        // ---------- تنظيف البيانات اليتيمة ----------
+        let orphanBusy = false;
+        async function scanOrphans() {
+            if (orphanBusy) return;
+            orphanBusy = true;
+            const btn = document.getElementById('adm-orphan-scan'), box = document.getElementById('adm-orphan-result'), cl = document.getElementById('adm-orphan-clean');
+            btn.disabled = true; btn.textContent = 'جاري الفحص...'; cl.classList.add('hidden');
+            try {
+                const c = await window.fbScanOrphans();
+                window.__orphanCounts = c;
+                const total = c.attempts + c.submissions + c.tickets + c.autosend + c.resDeadDoctor + c.resNoOwner;
+                box.innerHTML = '';
+                const lines = [`محاولات طلاب بلا امتحان: ${c.attempts}`, `تسليمات بلا امتحان: ${c.submissions}`, `تذاكر دخول بلا امتحان: ${c.tickets}`, `علامات إرسال تلقائي بلا امتحان: ${c.autosend}`, `نتايج دكتور اتحذف حسابه: ${c.resDeadDoctor}`, `نتايج قديمة من غير دكتور (مش ظاهرة لحد، وممكن تتربط بدكتور بدل ما تتمسح): ${c.resNoOwner}`, `امتحانات محذوفة هنحاول نمسح مفاتيحها (الأدمن مايقدرش يقرا المفاتيح، فمش بنعرف لو لسه موجودة؛ العدد ده بيفضل ظاهر): ${c.keys}`];
+                lines.forEach(t => { const p = document.createElement('div'); p.textContent = t; box.appendChild(p); });
+                box.classList.remove('hidden');
+                if (total + c.keys > 0) cl.classList.remove('hidden');
+                if (total === 0) { const p = document.createElement('div'); p.className = 'font-bold text-emerald-700 mt-1'; p.textContent = 'مفيش بيانات يتيمة مقروءة. القاعدة نضيفة.'; box.appendChild(p); }
+            } catch (e) { console.warn('orphan scan failed', e); showToast('الفحص ما كملش — حاول تاني', 'danger'); }
+            finally { orphanBusy = false; btn.disabled = false; btn.textContent = 'افحص (من غير مسح)'; }
+        }
+        async function cleanOrphans() {
+            if (orphanBusy) return;
+            const c = window.__orphanCounts || {};
+            const ok = await showConfirmModal({ title: 'مسح البيانات اليتيمة', message: 'هيتمسح من القاعدة نهائيًا اللي ظهر في الفحص بس (بيانات امتحانات ودكاترة محذوفين أصلاً). الامتحانات الموجودة، وأي نتيجة ظاهرة لدكتور موجود، وحسابات الدكاترة، وسجلات الأدمن ما بتتلمسش. مفيش تراجع. متأكد؟', confirmLabel: 'امسح' });
+            if (!ok) return;
+            let withNoOwner = false;
+            if (c.resNoOwner > 0) {
+                withNoOwner = await showConfirmModal({ title: 'نتايج قديمة من غير دكتور', message: `في ${c.resNoOwner} نتيجة قديمة من غير دكتور. تمسحها كمان؟ لو ممكن تكون مهمة، اضغط إلغاء وهيتمسح الباقي بس، واربطها بدكتور من كارت "بيانات قديمة محتاجة ربط".`, confirmLabel: 'امسحها كمان', cancelLabel: 'لأ، سيبها' });
+            }
+            orphanBusy = true;
+            const cl = document.getElementById('adm-orphan-clean'); cl.disabled = true; cl.textContent = 'جاري المسح...';
+            try {
+                const r = await window.fbCleanOrphans(withNoOwner);
+                showToast(r.failed ? `اتمسح ${r.deleted} وفشل ${r.failed} — افحص وامسح تاني` : `اتمسح ${r.deleted} عنصر${r.skipped ? ` (وتخطينا ${r.skipped} لأنهم اتغيروا)` : ''}`, r.failed ? 'warning' : 'success');
+                cl.classList.add('hidden'); document.getElementById('adm-orphan-result').classList.add('hidden');
+            } catch (e) { console.warn('orphan clean failed', e); showToast('المسح ما كملش — افحص تاني وحاول', 'danger'); }
+            finally { orphanBusy = false; cl.disabled = false; cl.textContent = 'امسح البيانات اليتيمة'; }
+        }
+
         // ---------- ترحيل البيانات القديمة ----------
         let migrationBusy = false;
         async function runLegacyMigration() {
@@ -4202,6 +4277,47 @@
         window.fbReleaseAutoSend = (examId) => deleteDoc(doc(fbDb, 'settings', 'autosend_' + examId));
         window.fbDeleteAttempt = (attemptId) => deleteDoc(doc(fbDb, 'attempts', attemptId));
 
+        // v28.29: حذف كامل من القاعدة. كل مستند بيتحذف لوحده (قواعد attempts بتحتاج الامتحان موجود، فالامتحان بيتحذف آخر حاجة)
+        const _delMany = async (refs) => {
+            let failed = 0;
+            for (let i = 0; i < refs.length; i += 8) {
+                const res = await Promise.allSettled(refs.slice(i, i + 8).map(r => deleteDoc(r)));
+                res.forEach(x => { if (x.status === 'rejected') { failed++; console.warn('delete failed', x.reason); } });
+            }
+            return failed;
+        };
+        // مسح سجل النتائج: النتيجة + محاولة الطالب + التسليم + تذكرة الدخول لكل نتيجة
+        window.fbPurgeRecords = async (recs) => {
+            const refs = [];
+            const exIds = Array.from(new Set(recs.map(r => r.examId).filter(Boolean)));
+            const subIds = new Set(recs.map(r => `${r.examId}_${r.id}`));
+            for (const ex of exIds) {
+                try { (await getDocs(query(collection(fbDb, 'attempts'), where('examId', '==', ex)))).docs.forEach(d => { if (subIds.has(d.id)) refs.push(d.ref); }); } catch (e) { console.warn('attempts read failed', e); }
+                try { (await getDocs(query(collection(fbDb, 'submissions'), where('doctorUid', '==', window.__myUid), where('examId', '==', ex)))).docs.forEach(d => { if (subIds.has(d.id)) refs.push(d.ref); }); } catch (e) { console.warn('submissions read failed', e); }
+                try {
+                    const tk = await getDocs(query(collection(fbDb, 'tickets'), where('examId', '==', ex)));
+                    tk.docs.forEach(d => { if (subIds.has(d.data().subId)) refs.push(d.ref); });
+                } catch (e) { console.warn('tickets read failed', e); }
+            }
+            recs.forEach(r => { if (r._fid) refs.push(doc(fbDb, 'results', r._fid)); });
+            return _delMany(refs);
+        };
+        // حذف امتحان: كل محاولاته وتسليماته وتذاكره + مفاتيحه + علامة الإرسال التلقائي، وبعدها الامتحان نفسه. withResults=true يمسح النتائج كمان
+        window.fbPurgeExam = async (examId, withResults) => {
+            let failed = 0;
+            const me = window.__myUid;
+            const refs = [];
+            try { (await getDocs(query(collection(fbDb, 'attempts'), where('examId', '==', examId)))).docs.forEach(d => refs.push(d.ref)); } catch (e) { failed++; }
+            try { (await getDocs(query(collection(fbDb, 'submissions'), where('doctorUid', '==', me), where('examId', '==', examId)))).docs.forEach(d => refs.push(d.ref)); } catch (e) { failed++; }
+            try { (await getDocs(query(collection(fbDb, 'tickets'), where('examId', '==', examId)))).docs.forEach(d => refs.push(d.ref)); } catch (e) { failed++; }
+            if (withResults) { try { (await getDocs(query(collection(fbDb, 'results'), where('doctorUid', '==', me), where('examId', '==', examId)))).docs.forEach(d => refs.push(d.ref)); } catch (e) { failed++; } }
+            refs.push(doc(fbDb, 'settings', 'autosend_' + examId));
+            failed += await _delMany(refs);
+            failed += await _delMany([doc(fbDb, 'examKeys', examId), doc(fbDb, 'examReveal', examId)]);
+            failed += await _delMany([doc(fbDb, 'exams', examId)]);
+            return failed;
+        };
+
         // ===== v27: حسابات الدكاترة + لوحة الأدمن + السجلات =====
         const _chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
         async function _batchDelete(refs) {
@@ -4359,6 +4475,53 @@
             const [exams, results, submissions] = await Promise.all([c('exams'), c('results'), c('submissions')]);
             return { exams, results, submissions };
         };
+
+        // v28.30: فحص وتنظيف البيانات اليتيمة (للأدمن بس). الفحص بيقرا بس. الحذف بعد تأكيد، وبيتأكد تاني إن الامتحان مش موجود قبل أي حذف
+        const _orphScan = async (db) => {
+            const exIds = new Set((await getDocs(collection(db, 'exams'))).docs.map(d => d.id));
+            const logIds = (await getDocs(collection(db, 'examLog'))).docs.map(d => d.id);
+            const pick = async (name, idOf) => (await getDocs(collection(db, name))).docs.filter(d => { const e = idOf(d); return e && !exIds.has(e); });
+            const attempts = await pick('attempts', d => d.data().examId);
+            const submissions = await pick('submissions', d => d.data().examId);
+            const tickets = await pick('tickets', d => d.data().examId);
+            const autosend = (await getDocs(collection(db, 'settings'))).docs.filter(d => d.id.startsWith('autosend_') && d.id.length > 9 && !exIds.has(d.id.slice(9)));
+            const keyIds = logIds.filter(id => !exIds.has(id));
+            const docIds = new Set((await getDocs(collection(db, 'doctors'))).docs.map(d => d.id));
+            const allRes = (await getDocs(collection(db, 'results'))).docs;
+            const resDeadDoctor = allRes.filter(d => { const u = d.data().doctorUid; return u && !docIds.has(u); });
+            const resNoOwner = allRes.filter(d => !d.data().doctorUid);
+            return { resDeadDoctor: resDeadDoctor.map(d => d.ref), resNoOwner: resNoOwner.map(d => d.ref), deadUids: resDeadDoctor.map(d => d.data().doctorUid), attempts: attempts.map(d => d.ref), submissions: submissions.map(d => d.ref), tickets: tickets.map(d => d.ref), autosend: autosend.map(d => d.ref), keyIds, examIdsOf: { attempts: attempts.map(d => d.data().examId), submissions: submissions.map(d => d.data().examId), tickets: tickets.map(d => d.data().examId) } };
+        };
+        const _orphClean = async (db, scan, includeNoOwner) => {
+            let deleted = 0, failed = 0, skipped = 0;
+            const alive = {};
+            const stillGone = async (id) => { if (!(id in alive)) alive[id] = (await getDoc(doc(db, 'exams', id))).exists(); return !alive[id]; };
+            const run = async (refs) => {
+                for (let i = 0; i < refs.length; i += 8) {
+                    const res = await Promise.allSettled(refs.slice(i, i + 8).map(r => deleteDoc(r)));
+                    res.forEach(x => { if (x.status === 'fulfilled') deleted++; else { failed++; console.warn('orphan delete failed', x.reason); } });
+                }
+            };
+            const refs = [];
+            for (const k of ['attempts', 'submissions', 'tickets']) {
+                for (let i = 0; i < scan[k].length; i++) { if (await stillGone(scan.examIdsOf[k][i])) refs.push(scan[k][i]); else skipped++; }
+            }
+            for (const r of scan.autosend) { if (await stillGone(r.id.slice(9))) refs.push(r); else skipped++; }
+            for (const id of scan.keyIds) { if (await stillGone(id)) refs.push(doc(db, 'examKeys', id), doc(db, 'examReveal', id)); else skipped++; }
+            const doctorGone = {};
+            for (let i = 0; i < scan.resDeadDoctor.length; i++) {
+                const u = scan.deadUids[i];
+                if (!(u in doctorGone)) doctorGone[u] = !(await getDoc(doc(db, 'doctors', u))).exists();
+                if (doctorGone[u]) refs.push(scan.resDeadDoctor[i]); else skipped++;
+            }
+            if (includeNoOwner) {
+                for (const r of scan.resNoOwner) { const s = await getDoc(r); if (s.exists() && !s.data().doctorUid) refs.push(r); else skipped++; }
+            }
+            await run(refs);
+            return { deleted, failed, skipped };
+        };
+        window.fbScanOrphans = async () => { const s = await _orphScan(fbDb); window.__orphanScan = s; return { attempts: s.attempts.length, submissions: s.submissions.length, tickets: s.tickets.length, autosend: s.autosend.length, keys: s.keyIds.length, resDeadDoctor: s.resDeadDoctor.length, resNoOwner: s.resNoOwner.length }; };
+        window.fbCleanOrphans = async (includeNoOwner) => { if (!window.__orphanScan) throw new Error('scan first'); const r = await _orphClean(fbDb, window.__orphanScan, !!includeNoOwner); window.__orphanScan = null; return r; };
 
         // حذف نهائي لدكتور وكل بياناته (أجزاء ≤ 400 عملية، وآمن لو اتكرر)
         window.fbDeleteDoctorCascade = async (uid, username) => {
