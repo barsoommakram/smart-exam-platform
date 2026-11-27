@@ -187,7 +187,7 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="bg-primary-600 text-white p-2.5 rounded-xl shadow-md shadow-primary-600/20">
+                <div id="site-logo" onclick="goHome()" title="" class="bg-primary-600 text-white p-2.5 rounded-xl shadow-md shadow-primary-600/20 cursor-pointer select-none">
                     <i data-lucide="shield-check" class="w-6 h-6"></i>
                 </div>
                 <div>
@@ -205,7 +205,15 @@
                     </button>
                     <button onclick="handleNavClick('doctor')" id="tab-doctor" class="nav-btn flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                         <i data-lucide="book-open-check" class="w-4 h-4"></i>
-                        <span>إعداد الدكتور</span>
+                        <span>دخول الدكتور</span>
+                    </button>
+                    <button onclick="handleNavClick('admin')" id="tab-admin" class="nav-btn hidden flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        <span>لوحة الأدمن</span>
+                    </button>
+                    <button onclick="handleNavClick('stats')" id="tab-stats" class="nav-btn hidden flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>إحصائياتي</span>
                     </button>
                     <button onclick="handleNavClick('email')" id="tab-email" class="nav-btn flex hidden items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                         <i data-lucide="mail" class="w-4 h-4"></i>
@@ -220,7 +228,7 @@
 
                 <!-- حالة دخول الدكتور -->
                 <div id="doctor-auth-controls">
-                    <button onclick="openDoctorLoginModal()" id="btn-doctor-login" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <button onclick="handleNavClick('doctor')" id="btn-doctor-login" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
                         <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400"></i>
                         <span>دخول الدكتور</span>
                     </button>
@@ -325,6 +333,22 @@
                 </div>
 
                 <div class="space-y-4">
+                    <!-- اختيار الدكتور (الخطوة الأولى للطالب) -->
+                    <div id="student-doctor-picker">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">الدكتور</label>
+                        <div id="doctor-search-wrap">
+                            <input type="text" id="student-doctor-search" placeholder="اكتب أول حروف من اسم الدكتور..." autocomplete="off" oninput="filterDoctorSuggestions()" onfocus="filterDoctorSuggestions()" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-primary-500 outline-none">
+                            <div id="doctor-suggestions" class="mt-1.5 rounded-xl border border-slate-200 bg-white shadow-lg overflow-hidden hidden"></div>
+                            <p class="text-[11px] text-slate-400 mt-1.5">الاقتراحات بتتصفى مع كل حرف بتكتبه — اضغط على اسم الدكتور للاختيار</p>
+                        </div>
+                        <div id="doctor-selected-chip" class="hidden mt-1 flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0"></i>
+                            <span id="doctor-selected-label">الدكتور المختار</span>
+                            <button type="button" onclick="clearSelectedDoctor()" class="text-rose-600 hover:text-rose-800 underline mr-auto">تغيير</button>
+                        </div>
+                    </div>
+
+
                     <!-- اختيار الامتحان المتاح -->
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">اختر الامتحان المتاح</label>
@@ -469,6 +493,144 @@
         <!-- ==========================================
              2. لوحة إعداد الدكتور (إنشاء امتحانات + توليد أسئلة حقيقي)
              ========================================== -->
+        <section id="view-doctor-auth" class="hidden space-y-6">
+            <div class="max-w-md mx-auto">
+                <!-- تسجيل الدخول (الافتراضي) -->
+                <div id="dauth-login-card" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <div class="text-center mb-1">
+                        <div class="w-12 h-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-2.5 border border-primary-100">
+                            <i data-lucide="key-round" class="w-6 h-6"></i>
+                        </div>
+                        <h2 class="text-base font-extrabold text-slate-900">تسجيل الدخول</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">للدكاترة المعتمدين</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المستخدم أو البريد الإلكتروني</label>
+                        <input type="text" id="dauth-username" placeholder="dr_sherif" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
+                        <input type="password" id="dauth-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitDoctorLoginInline()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    </div>
+                    <p id="dauth-error" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2.5 rounded-lg border border-rose-200"></p>
+                    <p id="dauth-info" class="text-xs font-bold text-emerald-700 hidden bg-emerald-50 p-2.5 rounded-lg border border-emerald-200"></p>
+                    <button onclick="submitDoctorLoginInline()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-md shadow-primary-600/20 transition">دخول</button>
+                    <button type="button" onclick="forgotPassword()" class="w-full text-xs font-bold text-primary-700 hover:underline">نسيت كلمة المرور؟</button>
+                    <div class="border-t border-slate-100 pt-4 text-center space-y-2">
+                        <p class="text-xs text-slate-500 font-bold">ما عندكش حساب؟</p>
+                        <button type="button" onclick="showRequestForm(true)" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md shadow-primary-600/20 transition">طلب إنشاء حساب</button>
+                    </div>
+                </div>
+
+                <!-- طلب حساب جديد (يظهر بالزرار) -->
+                <div id="dauth-request-card" class="hidden bg-white rounded-2xl border-2 border-primary-500/30 p-6 shadow-md space-y-4">
+                    <div class="text-center mb-1">
+                        <div class="w-12 h-12 bg-primary-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-primary-600/20">
+                            <i data-lucide="user-plus" class="w-6 h-6"></i>
+                        </div>
+                        <h2 class="text-base font-extrabold text-slate-900">طلب إنشاء حساب دكتور</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">الطلب يروح للأدمن، وتدخل بعد موافقته</p>
+                    </div>
+                    <div id="dauth-legacy-note" class="hidden bg-primary-50 border border-primary-200 rounded-xl p-3 text-[11px] font-bold text-primary-900 leading-relaxed">
+                        حسابك مسجل دخول بس لسه معملتش طلب انضمام. اكتب اسمك وابعت الطلب للأدمن.
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم الدكتور (بيظهر للطلاب)</label>
+                        <input type="text" id="req-name" placeholder="مثال: د. منى عبد الرحمن" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    </div>
+                    <div id="req-email-wrap">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">البريد الإلكتروني (اختياري)</label>
+                        <input type="email" id="req-email" placeholder="name@example.com" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                        <p class="text-[11px] font-bold text-amber-700 mt-1.5 leading-relaxed">من غير إيميل مش هتقدر تسترجع حسابك لو نسيت كلمة المرور.</p>
+                    </div>
+                    <div id="req-creds">
+                        <div class="mb-4">
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المستخدم (للدخول فقط، مش بيظهر للطلاب)</label>
+                            <input type="text" id="req-username" placeholder="dr_mona" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                            <p class="text-[11px] text-slate-400 mt-1">حروف إنجليزية صغيرة وأرقام و _ بس، من ٣ لـ ٣٠ حرف</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
+                            <input type="password" id="req-password" placeholder="تختارها بنفسك (٦ أحرف على الأقل)" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                    </div>
+                    <p id="req-error" class="text-xs font-bold text-rose-600 hidden bg-rose-50 p-2.5 rounded-lg border border-rose-200"></p>
+                    <p id="req-warn" class="text-xs font-bold text-amber-800 hidden bg-amber-50 p-2.5 rounded-lg border border-amber-300 leading-relaxed"></p>
+                    <button onclick="submitDoctorRequest()" id="req-submit-btn" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-md shadow-primary-600/20 transition">إرسال الطلب للأدمن</button>
+                    <button type="button" onclick="showRequestForm(false)" class="w-full text-xs font-bold text-slate-500 hover:text-slate-800">رجوع لتسجيل الدخول</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-admin" class="hidden space-y-6">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold text-primary-700 block" id="adm-stat-doctors">-</span><span class="text-[11px] text-slate-500 block mt-1">الدكاترة المعتمدون</span></div>
+                <div class="bg-white rounded-2xl border-2 border-amber-400 p-4 shadow-sm"><span class="text-2xl font-extrabold text-amber-600 block" id="adm-stat-pending">-</span><span class="text-[11px] text-slate-500 block mt-1">طلبات مستنية موافقتك</span></div>
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold text-primary-700 block" id="adm-stat-exams">-</span><span class="text-[11px] text-slate-500 block mt-1">إجمالي الامتحانات المنشأة</span></div>
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold text-emerald-600 block" id="adm-stat-results">-</span><span class="text-[11px] text-slate-500 block mt-1">إجمالي النتائج المستلمة</span></div>
+            </div>
+
+            <div class="bg-white rounded-2xl border-2 border-amber-400 p-6 shadow-md space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="user-plus" class="w-5 h-5 text-amber-500"></i> طلبات انضمام الدكاترة</h2>
+                    <span id="adm-pending-badge" class="bg-amber-100 text-amber-800 text-[11px] font-extrabold px-2.5 py-1 rounded-full hidden">0</span>
+                </div>
+                <div id="adm-pending-list" class="space-y-2.5"></div>
+                <p id="adm-pending-empty" class="text-xs text-slate-400 text-center py-3">مفيش طلبات مستنية حالياً.</p>
+                <p class="text-[11px] text-slate-400">قبول = الحساب يشتغل فورا، رفض = الطلب يتمسح وميقدرش يدخل.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-primary-600"></i> الدكاترة المعتمدون</h2>
+                    <button onclick="loadAdminPanel()" class="text-xs font-bold text-primary-700 hover:bg-primary-50 border border-primary-200 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> تحديث</button>
+                </div>
+                <div id="adm-doctors-list" class="space-y-3"></div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">الأرقام تراكمية ومستقلة: بتتحسب من سجل دائم، ومش بتقل لو الدكتور مسح امتحانات أو نتايج. الأدمن بيشوف أعداد بس، مش محتوى. الحقل الفاضي في الحدود = بدون حد.</p>
+            </div>
+
+            <div id="adm-legacy-card" class="hidden bg-white rounded-2xl border-2 border-rose-300 p-6 shadow-sm space-y-3">
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="link" class="w-5 h-5 text-rose-500"></i> بيانات قديمة محتاجة ربط</h2>
+                <p class="text-xs text-slate-600 leading-relaxed">في <span id="adm-legacy-count" class="font-extrabold text-rose-600">0</span> مستند من قبل نظام الدكاترة. اربطها بحسابك (أو بأي دكتور) عشان تشتغل مع القواعد الجديدة.</p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">اربط بالدكتور</label>
+                    <select id="adm-legacy-doctor" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-bold text-slate-800 outline-none"></select>
+                </div>
+                <button onclick="runLegacyMigration()" id="adm-migrate-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">تحميل نسخة احتياطية + ربط البيانات القديمة</button>
+                <p class="text-[11px] text-slate-400">بينزل ملف نسخة احتياطية الأول، وبعدين يضيف حقل الدكتور بس من غير ما يمسح أو يغير أي بيانات.</p>
+            </div>
+        </section>
+
+        <section id="view-stats" class="hidden space-y-6">
+            <div class="bg-gradient-to-l from-primary-900 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold mb-1">إحصائياتي</h2>
+                    <p class="text-primary-100 text-xs sm:text-sm">أرقام ورسوم من نتايج امتحاناتك أنت بس.</p>
+                </div>
+                <select id="stats-exam-filter" onchange="renderStatsTab()" class="rounded-xl border border-white/30 bg-white/10 text-white px-3 py-2.5 text-xs font-bold outline-none"></select>
+            </div>
+            <div id="stats-empty" class="hidden bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500 font-bold">مفيش نتايج لسه. أول ما الطلاب يسلموا هتظهر الإحصائيات هنا.</div>
+            <div id="stats-body" class="space-y-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="stats-kpis"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><h3 class="text-sm font-extrabold text-slate-900 mb-3">توزيع الدرجات</h3><div id="stats-dist" class="flex items-end gap-2 h-40"></div></div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><h3 class="text-sm font-extrabold text-slate-900 mb-3">التسليمات آخر ٣٠ يوم</h3><div id="stats-timeline" class="flex items-end gap-[3px] h-40"></div><div class="flex justify-between text-[10px] text-slate-400 font-bold mt-1"><span>قبل ٣٠ يوم</span><span>النهاردة</span></div></div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-x-auto"><h3 class="text-sm font-extrabold text-slate-900 mb-3">مقارنة الامتحانات</h3><table class="w-full text-xs text-right"><thead><tr class="text-slate-500 border-b border-slate-200"><th class="py-2">الامتحان</th><th>التسليمات</th><th>المتوسط</th><th>الأعلى</th><th>الأقل</th><th>النجاح</th><th>للمراجعة</th><th>متوسط الوقت</th><th>سرعة الكتابة</th></tr></thead><tbody id="stats-exams-table"></tbody></table></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><h3 class="text-sm font-extrabold text-rose-600 mb-3">أصعب ٥ أسئلة</h3><div id="stats-hard" class="space-y-2 text-xs"></div></div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><h3 class="text-sm font-extrabold text-emerald-600 mb-3">أسهل ٥ أسئلة</h3><div id="stats-easy" class="space-y-2 text-xs"></div></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm"><h3 class="text-sm font-extrabold text-slate-900 mb-3">النزاهة</h3><div id="stats-integrity"></div></div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                        <div><h3 class="text-sm font-extrabold text-emerald-600 mb-2">أعلى ٥ طلاب</h3><div id="stats-top" class="space-y-1.5 text-xs"></div></div>
+                        <div><h3 class="text-sm font-extrabold text-rose-600 mb-2">أقل ٥ طلاب</h3><div id="stats-bottom" class="space-y-1.5 text-xs"></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="view-doctor" class="hidden space-y-6">
             <div class="bg-gradient-to-l from-primary-900 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -667,35 +829,6 @@
         </section>
 
         <section id="view-reports" class="hidden space-y-6">
-            <!-- بطاقة إحصائيات الامتحان -->
-            <div id="exam-stats-card" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                <div class="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-                    <div class="bg-primary-100 text-primary-700 p-2 rounded-lg">
-                        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-sm sm:text-base">إحصائيات الامتحان</h3>
-                        <p class="text-[11px] text-slate-500">تتحدّث تلقائياً حسب فلتر الامتحان المختار أدناه</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/80 text-center">
-                        <span class="text-xs text-slate-500 block mb-1">متوسط الدرجات</span>
-                        <span class="text-2xl font-extrabold text-primary-700 block" id="stat-avg">-</span>
-                        <span class="text-[11px] text-slate-500 block mt-1" id="stat-count">-</span>
-                    </div>
-                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/80">
-                        <span class="text-xs text-slate-500 block mb-1.5">أصعب سؤال (أقل متوسط تحصيل)</span>
-                        <span class="text-xs sm:text-sm font-bold text-slate-800 leading-relaxed block" id="stat-hardest">-</span>
-                        <span class="text-[11px] font-bold text-rose-600 block mt-1" id="stat-hardest-avg"></span>
-                    </div>
-                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/80">
-                        <span class="text-xs text-slate-500 block mb-2">توزيع الدرجات (بالنسبة المئوية)</span>
-                        <div id="stat-dist" class="flex items-end gap-1.5 h-28"></div>
-                    </div>
-                </div>
-            </div>
-
             <!-- بطاقة آخر نتيجة -->
             <div id="latest-result-card" class="hidden bg-white rounded-2xl border-2 border-primary-500/30 p-6 shadow-md">
                 <div class="flex flex-wrap items-center justify-between gap-4 pb-4 mb-5 border-b border-slate-100">
@@ -880,10 +1013,12 @@
             logs: []
         };
 
+        function refreshIcons() { try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch (e) {} }
+
         window.onload = function () {
             loadState();
             buildPeriodUI();
-            lucide.createIcons();
+            refreshIcons();
             updateDoctorAuthUI();
             populateStudentExamSelector();
             populateDoctorWorkspace();
@@ -921,7 +1056,7 @@
                 try {
                     await window.fbSaveExam(getCurrentDoctorExam());
                 } catch (e) {
-                    showToast('فشل حفظ الامتحان في قاعدة البيانات — التعديل محفوظ محلياً فقط', 'warning');
+                    showToast((e && e.userMessage) ? e.userMessage : 'فشل حفظ الامتحان في قاعدة البيانات — التعديل محفوظ محلياً فقط', 'warning');
                 }
             }, 900);
         }
@@ -935,10 +1070,10 @@
                 warning: 'bg-amber-600 text-white border-amber-500',
                 danger: 'bg-rose-700 text-white border-rose-600'
             };
-            toast.className = `${colors[type]} border px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+            toast.className = `${colors[type] || colors.info} border px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
             toast.innerHTML = `<i data-lucide="bell" class="w-4 h-4 shrink-0"></i><span>${escapeHtml(message)}</span>`;
             container.appendChild(toast);
-            lucide.createIcons();
+            refreshIcons();
             requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'translate-y-2');
@@ -950,40 +1085,57 @@
         // نظام الصلاحيات ودخول الدكتور
         // =========================================================================
         function handleNavClick(tabName) {
-            if ((tabName === 'doctor' || tabName === 'reports' || tabName === 'email') && !isDoctorLoggedIn) {
-                openDoctorLoginModal(tabName);
+            if (tabName === 'doctor') {
+                if (isDoctorLoggedIn) { switchTab('doctor'); return; }
+                switchTab('doctor-auth');
+                return;
+            }
+            if (tabName === 'admin') { if (isAdminLoggedIn) switchTab('admin'); else switchTab('doctor-auth'); return; }
+            if ((tabName === 'reports' || tabName === 'email' || tabName === 'stats') && !isDoctorLoggedIn) {
+                switchTab('doctor-auth');
                 return;
             }
             switchTab(tabName);
         }
 
         function switchTab(tabName) {
-            if (tabName === 'student' && isDoctorLoggedIn) tabName = 'doctor';
-            if ((tabName === 'doctor' || tabName === 'reports' || tabName === 'email') && !isDoctorLoggedIn) {
-                openDoctorLoginModal(tabName);
-                return;
-            }
-            ['student', 'doctor', 'email', 'reports'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
+            if (tabName === 'student' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
+            if (tabName === 'doctor' && !isDoctorLoggedIn) tabName = 'doctor-auth';
+            if (tabName === 'admin' && !isAdminLoggedIn) tabName = 'doctor-auth';
+            if ((tabName === 'reports' || tabName === 'email' || tabName === 'stats') && !isDoctorLoggedIn) tabName = 'doctor-auth';
+            const views = ['student', 'doctor', 'doctor-auth', 'admin', 'stats', 'email', 'reports'];
+            const viewToTab = { 'doctor-auth': 'doctor' };
+            views.forEach(t => {
+                const v = document.getElementById(`view-${t}`);
+                if (v) v.classList.add('hidden');
                 const btn = document.getElementById(`tab-${t}`);
-                btn.classList.remove('bg-white', 'text-primary-700', 'shadow-sm');
-                btn.classList.add('text-slate-600');
+                if (btn) {
+                    btn.classList.remove('bg-white', 'text-primary-700', 'shadow-sm');
+                    btn.classList.add('text-slate-600');
+                }
             });
-
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            activeBtn.classList.add('bg-white', 'text-primary-700', 'shadow-sm');
-            activeBtn.classList.remove('text-slate-600');
-
-            if (tabName === 'student') populateStudentExamSelector();
+            const view = document.getElementById(`view-${tabName}`);
+            if (view) view.classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${viewToTab[tabName] || tabName}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white', 'text-primary-700', 'shadow-sm');
+                activeBtn.classList.remove('text-slate-600');
+            }
+            // على شاشة دخول الدكتور: نخفي تبويب الطالب (الشعار هو الرجوع)
+            const stuTab = document.getElementById('tab-student');
+            if (stuTab) stuTab.classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn || tabName === 'doctor-auth');
+            if (tabName === 'doctor-auth') showRequestForm(!!window.__signedInNoProfileUid);
+            if (tabName === 'student') { loadApprovedDoctors(); populateStudentExamSelector(); }
             if (tabName === 'doctor') populateDoctorWorkspace();
+            if (tabName === 'admin') loadAdminPanel();
+            if (tabName === 'stats') renderStatsTab();
             if (tabName === 'email') document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || '';
             if (tabName === 'reports') {
                 populateReportFilter();
                 renderExcelTable();
             }
-            if (isDoctorLoggedIn && tabName !== 'student') { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
-            lucide.createIcons();
+            if (isDoctorLoggedIn && ['doctor', 'stats', 'email', 'reports'].includes(tabName)) { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
+            refreshIcons();
         }
 
         let pendingTabAfterLogin = null;
@@ -1016,7 +1168,7 @@
                 return;
             }
             try {
-                await window.doctorSignIn(username + '@doctor.local', pass);
+                await window.doctorSignIn(await resolveLoginEmail(username), pass);
                 closeDoctorLoginModal();
                 showToast('مرحباً — تم تفعيل صلاحيات الدكتور', 'success');
                 switchTab(pendingTabAfterLogin || 'doctor');
@@ -1029,17 +1181,25 @@
         async function logoutDoctor() {
             try { if (typeof window.doctorSignOut === 'function') await window.doctorSignOut(); } catch (e) {}
             showToast('تم تسجيل الخروج والعودة إلى بوابة الطالب', 'info');
+            setTimeout(() => { try { location.reload(); } catch (e) {} }, 700);
         }
 
         function updateDoctorAuthUI() {
             const loginBtn = document.getElementById('btn-doctor-login');
             const badge = document.getElementById('doctor-session-badge');
-            document.getElementById('doctor-email-label').textContent = window.doctorEmail ? window.doctorEmail.replace(/@doctor\.local$/i, '') : 'الدكتور';
-            ['tab-doctor', 'tab-email', 'tab-reports'].forEach(id => {
+            const tabDoctorLabel = document.querySelector('#tab-doctor span');
+            const label = isAdminLoggedIn ? (window.__myDoctorName || 'الأدمن العام') : (window.__myDoctorName || 'الدكتور');
+            document.getElementById('doctor-email-label').textContent = label;
+            ['tab-email', 'tab-reports', 'tab-stats'].forEach(id => {
                 document.getElementById(id).classList.toggle('hidden', !isDoctorLoggedIn);
             });
-            document.getElementById('tab-student').classList.toggle('hidden', isDoctorLoggedIn);
-            if (isDoctorLoggedIn) {
+            const tabAdmin = document.getElementById('tab-admin');
+            if (tabAdmin) tabAdmin.classList.toggle('hidden', !isAdminLoggedIn);
+            const tabDoc = document.getElementById('tab-doctor');
+            if (tabDoc) tabDoc.classList.toggle('hidden', isAdminLoggedIn && !isDoctorLoggedIn);
+            document.getElementById('tab-student').classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn);
+            if (tabDoctorLabel) tabDoctorLabel.textContent = isDoctorLoggedIn ? 'امتحاناتي' : 'دخول الدكتور';
+            if (isDoctorLoggedIn || isAdminLoggedIn) {
                 loginBtn.classList.add('hidden');
                 badge.classList.remove('hidden');
                 badge.classList.add('flex');
@@ -1185,7 +1345,7 @@
             refreshPeriodUI();
             renderDoctorQuestionsList();
             document.getElementById('btn-delete-exam').style.display = exams.length > 1 ? 'inline-flex' : 'none';
-            lucide.createIcons();
+            refreshIcons();
         }
 
         function renderDoctorExamPills() {
@@ -1207,10 +1367,15 @@
             });
         }
 
+        const BOOK_MAX_CHARS = 300000; // حد مستند Firestore 1 ميجا، والعربي حرفه بايتين تقريباً
         function syncCurrentExamFields() {
             const exam = getCurrentDoctorExam();
             exam.courseName = document.getElementById('doc-course-name').value;
             exam.title = document.getElementById('doc-exam-title').value;
+            if (document.getElementById('doc-book-content').value.length > BOOK_MAX_CHARS) {
+                document.getElementById('doc-book-content').value = document.getElementById('doc-book-content').value.slice(0, BOOK_MAX_CHARS);
+                showToast('المرجع أطول من الحد المسموح (' + BOOK_MAX_CHARS.toLocaleString('ar-EG') + ' حرف) فتم اقتصاصه عشان الحفظ في قاعدة البيانات يفضل شغال.', 'warning');
+            }
             exam.bookContent = document.getElementById('doc-book-content').value;
             exam.accessCode = document.getElementById('doc-access-code').value.trim();
             exam.startTime = document.getElementById('doc-start-time').value || '';
@@ -1225,6 +1390,7 @@
         }
 
         function createNewExamTemplate() {
+            if (!window.__bootstrapExam) { const why = (typeof examCreateBlockReason === 'function') ? examCreateBlockReason() : ''; if (why) { showToast(why, 'warning'); return; } }
             const newId = 'exam_' + Date.now();
             const newExam = {
                 id: newId,
@@ -1459,7 +1625,7 @@
             });
 
             document.getElementById('total-exam-points-label').textContent = `عدد الأسئلة: ${exam.questions.length} • إجمالي الدرجات: ${totalPoints} درجة`;
-            lucide.createIcons();
+            refreshIcons();
         }
 
         function updateQuestionField(qId, field, value) {
@@ -1571,12 +1737,7 @@
 
             showToast('جاري تحليل المرجع وتوليد الأسئلة ونماذج الإجابة...', 'info');
 
-            let generated = null;
-            try {
-                generated = await generateQuestionsViaGemini(bookText, exam.courseName, count);
-            } catch (e) {
-                generated = generateQuestionsLocally(bookText, count);
-            }
+            const generated = generateQuestionsLocally(bookText, count);
 
             if (generated && generated.length) {
                 generated.forEach((item, idx) => {
@@ -1592,27 +1753,6 @@
                 renderDoctorQuestionsList();
                 showToast(`تم توليد وإضافة ${generated.length} أسئلة من المرجع بنجاح!`, 'success');
             }
-        }
-
-        async function generateQuestionsViaGemini(bookText, courseName, count) {
-            const apiKey = "";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-            const prompt = `أنشئ ${count} أسئلة اختبارية مقالية باللغة العربية بناءً على المرجع التالي لمقرر (${courseName}) فقط، مع نموذج إجابة دقيق لكل سؤال ودرجة مناسبة (بين 5 و10). أعد النتيجة بصيغة JSON array فقط من كائنات تحوي المفاتيح: text, modelAnswer, maxScore.\n\nالمرجع:\n${bookText.slice(0, 3500)}`;
-
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: 'application/json' }
-                })
-            });
-            if (!res.ok) throw new Error('No API');
-            const data = await res.json();
-            const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed) || !parsed.length) throw new Error('Invalid JSON');
-            return parsed;
         }
 
         function generateQuestionsLocally(bookText, count) {
@@ -1714,14 +1854,18 @@
             const select = document.getElementById('student-exam-select');
             const prevVal = select.value;
             select.innerHTML = '';
-            exams.forEach(ex => {
+            let list = exams;
+            if (typeof doctorPickerAvailable === 'function' && doctorPickerAvailable()) {
+                list = selectedDoctorUid ? exams.filter(e => e.doctorUid === selectedDoctorUid) : [];
+            }
+            list.forEach(ex => {
                 const totalPts = ex.questions.reduce((acc, q) => acc + (Number(q.maxScore) || 0), 0);
                 const opt = document.createElement('option');
                 opt.value = ex.id;
                 opt.textContent = `${ex.title} — (${ex.courseName}) [${ex.questions.length} أسئلة • ${totalPts} درجة]`;
                 select.appendChild(opt);
             });
-            if (prevVal && exams.some(e => e.id === prevVal)) {
+            if (prevVal && list.some(e => e.id === prevVal)) {
                 select.value = prevVal;
             }
             previewSelectedExam();
@@ -1729,7 +1873,16 @@
 
         function previewSelectedExam() {
             const examId = document.getElementById('student-exam-select').value;
-            const ex = exams.find(e => e.id === examId) || exams[0];
+            let ex = exams.find(e => e.id === examId) || null;
+            const pickerOn = (typeof doctorPickerAvailable === 'function' && doctorPickerAvailable());
+            if (!ex && !pickerOn) ex = exams[0] || null;
+            if (!ex) {
+                document.getElementById('selected-exam-meta').innerHTML = pickerOn && !selectedDoctorUid
+                    ? '<span class="font-bold text-amber-700">اختر الدكتور الأول من الأعلى عشان تشوف امتحاناته.</span>'
+                    : '<span class="text-slate-500">مفيش امتحانات متاحة حالياً.</span>';
+                document.getElementById('access-code-row').classList.add('hidden');
+                return;
+            }
             const totalPts = ex.questions.reduce((acc, q) => acc + (Number(q.maxScore) || 0), 0);
             const fmtT = (v) => v ? new Date(v).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : '';
             let extra = '';
@@ -1741,7 +1894,7 @@
                 extra += `<span class="text-slate-300">|</span>
                 <span class="font-bold text-primary-900">مدة الامتحان:</span> <span>${escapeHtml(ex.durationMin)} دقيقة</span>`;
             }
-            if (ex.accessCode) {
+            if (ex.accessCode || ex.requiresCode) {
                 extra += `<span class="text-slate-300">|</span>
                 <span class="font-bold text-amber-700">يتطلب كود دخول</span>`;
             }
@@ -1756,7 +1909,7 @@
             if (ex.instructions && ex.instructions.trim()) {
                 document.getElementById('selected-exam-meta').innerHTML += `<div class="w-full basis-full mt-1 text-xs leading-relaxed text-slate-700"><span class="font-bold text-primary-900">تعليمات:</span> ${escapeHtml(ex.instructions)}</div>`;
             }
-            document.getElementById('access-code-row').classList.toggle('hidden', !(ex.accessCode && String(ex.accessCode).trim()));
+            document.getElementById('access-code-row').classList.toggle('hidden', !((ex.accessCode && String(ex.accessCode).trim()) || ex.requiresCode));
         }
 
         async function startExam() {
@@ -1764,8 +1917,16 @@
             const id = document.getElementById('student-id').value.trim();
             const group = document.getElementById('student-group').value.trim() || 'الفرقة الأولى';
             const examId = document.getElementById('student-exam-select').value;
-            const exam = exams.find(e => e.id === examId) || exams[0];
+            const exam = exams.find(e => e.id === examId) || null;
 
+            if (typeof doctorPickerAvailable === 'function' && doctorPickerAvailable() && !selectedDoctorUid) {
+                showToast('اختر الدكتور الأول من الأعلى عشان تشوف امتحاناته', 'warning');
+                return;
+            }
+            if (!exam) {
+                showToast('مفيش امتحان متاح حالياً', 'warning');
+                return;
+            }
             if (!name || !id) {
                 showToast('من فضلك أدخل اسم الطالب والرقم الجامعي لبدء الامتحان', 'warning');
                 return;
@@ -1782,15 +1943,19 @@
                 return;
             }
 
-            // كود دخول الامتحان
+            // كود دخول الامتحان: الفحص الحقيقي في قواعد قاعدة البيانات وقت التسليم. هنا نتأكد إنه مكتوب (والقديم يتفحص محلياً)
+            const enteredCode = (document.getElementById('exam-access-code').value || '').trim();
             if (exam.accessCode && String(exam.accessCode).trim()) {
-                const entered = document.getElementById('exam-access-code').value.trim();
-                if (entered !== String(exam.accessCode).trim()) {
+                if (enteredCode !== String(exam.accessCode).trim()) {
                     showToast('كود الدخول غير صحيح — تأكد من الكود اللي أعلنه الدكتور', 'danger');
                     return;
                 }
+            } else if (exam.requiresCode && !enteredCode) {
+                showToast('اكتب كود الدخول اللي أعلنه الدكتور', 'warning');
+                return;
             }
 
+            try { if (typeof window.fbExamFull === 'function' && await window.fbExamFull(exam)) { showToast('اكتمل عدد الطلاب المسموح لهذا الامتحان — راجع الدكتور', 'danger'); return; } } catch (e) {}
             // محاولة واحدة فقط لكل رقم جامعي (تُفرض من قاعدة البيانات المشتركة)
             const attemptId = `${exam.id}_${id}`;
             if (typeof window.fbGetAttempt !== 'function') {
@@ -1820,7 +1985,8 @@
                 pasteCount: 0,
                 tabSwitches: 0,
                 fullscreenExits: 0,
-                logs: []
+                logs: [],
+                accessCode: enteredCode
             };
 
             document.getElementById('student-login-card').classList.add('hidden');
@@ -2050,6 +2216,16 @@
             });
             pub.bookContent = '';
             const keysDoc = { examId: exam.id, bookContent: exam.bookContent || '', answers, updatedAtMs: Date.now() };
+            // كود الدخول يتخزن في examKeys فقط، والنسخة العامة فيها علامة requiresCode بس
+            const ac = String(exam.accessCode || '').trim();
+            delete pub.accessCode; delete pub.requiresCode;
+            if (ac) { keysDoc.accessCode = ac; pub.requiresCode = true; }
+            // نافذة الامتحان كأرقام (للتحقق من القواعد وقت التسليم)
+            delete pub.windowStartMs; delete pub.windowEndMs;
+            const _ws = exam.startTime ? new Date(exam.startTime).getTime() : 0;
+            const _we = exam.endTime ? new Date(exam.endTime).getTime() : 0;
+            if (_ws > 0) pub.windowStartMs = _ws;
+            if (_we > 0) pub.windowEndMs = _we;
             return { pub, keysDoc: JSON.parse(JSON.stringify(keysDoc)), reveal: exam.showScoreToStudent ? JSON.parse(JSON.stringify(reveal)) : null };
         }
 
@@ -2205,6 +2381,22 @@
             }
             o.classList.remove('hidden');
         }
+        function setLoaderStep(t) { const el = document.getElementById('loader-step-text'); if (el) el.textContent = t; }
+
+        // يحدد سبب فشل التسليم لعرض رسالة واضحة (بدون لوب)
+        async function diagnoseSubmitFailure(e, exam, subId) {
+            const code = String((e && e.code) || e || '');
+            if (code === 'app/already-submitted') return 'taken';
+            if (code === 'app/exam-full') return 'full';
+            if (/permission/i.test(code)) {
+                try { if (typeof window.fbGetAttempt === 'function' && await window.fbGetAttempt(subId)) return 'taken'; } catch (x) {}
+                const nowMs = Date.now();
+                if ((exam.windowStartMs && nowMs < exam.windowStartMs - 180000) || (exam.windowEndMs && exam.durationMin > 0 && nowMs > exam.windowEndMs + exam.durationMin * 60000 + 180000)) return 'time';
+                if (exam.requiresCode || exam.accessCode) return 'code';
+            }
+            return '';
+        }
+
         async function submitExam(force) {
             if (sessionState.submitting) return;
             const textareas = Array.from(document.querySelectorAll('.student-q-input'));
@@ -2226,6 +2418,7 @@
             document.getElementById('student-exam-room').classList.add('hidden');
             document.getElementById('student-exam-room').classList.remove('grid');
             document.getElementById('grading-loader').classList.remove('hidden');
+            setLoaderStep('جاري إرسال إجاباتك بأمان...');
 
             // الإجابات الخام: مقالي = نص، اختيار من متعدد = رقم الخيار الأصلي (أو -1)
             const answers = {};
@@ -2256,7 +2449,9 @@
                 wpm,
                 bigJumps: sessionState.bigJumps || 0,
                 durationSec,
-                createdAtMs: Date.now()
+                createdAtMs: Date.now(),
+                doctorUid: exam.doctorUid || null,
+                accessCode: String(sessionState.accessCode || '')
             };
             let uid = (typeof window.fbCurrentAnonUid === 'function') ? window.fbCurrentAnonUid() : null;
             if (!uid && !isDoctorLoggedIn && typeof window.fbEnsureAnon === 'function') {
@@ -2266,12 +2461,29 @@
             let scoreWhy = '';
 
             let saved = false;
-            try {
-                if (typeof window.fbAddSubmission === 'function') {
-                    await window.fbAddSubmission(subId, JSON.parse(JSON.stringify(sub)));
-                    saved = true;
+            let failKind = '';
+            if (isDoctorLoggedIn) {
+                // معاينة الدكتور: لا يتم تسجيل أي تسليم
+                saved = true;
+            } else {
+                try {
+                    if (typeof window.fbAddSubmission === 'function') {
+                        await window.fbAddSubmission(subId, JSON.parse(JSON.stringify(sub)));
+                        saved = true;
+                    }
+                } catch (e) {
+                    console.warn('submission failed', e);
+                    failKind = await diagnoseSubmitFailure(e, exam, subId);
                 }
-            } catch (e) { console.warn('submission failed', e); }
+            }
+            if (!saved && failKind === 'taken') {
+                // التسليم موجود بالفعل لنفس الرقم الجامعي: ننهي الجلسة بدل ما نعلّق الطالب
+                document.getElementById('grading-loader').classList.add('hidden');
+                document.getElementById('student-login-card').classList.remove('hidden');
+                sessionState.submitting = false;
+                showToast('تم تسجيل تسليم سابق لهذا الرقم الجامعي في هذا الامتحان — لا يمكن التسليم مرتين. راجع الدكتور لو فيه خطأ.', 'danger');
+                return;
+            }
             if (!saved) {
                 // لم يصل التسليم: نعيد الامتحان للطالب ليعيد المحاولة بدون فقدان إجاباته
                 document.getElementById('grading-loader').classList.add('hidden');
@@ -2282,12 +2494,19 @@
                 clearInterval(sessionState.timerInterval);
                 sessionState.timerInterval = setInterval(updateExamTimer, 1000);
                 setTimeout(() => { sessionState.autoSubmitting = false; }, 6000);
-                showToast('تعذر تسليم الإجابات (تحقق من الإنترنت). إجاباتك ما زالت محفوظة، اضغط تسليم مرة أخرى.', 'danger');
+                if (failKind === 'full') showToast('اكتمل عدد التسليمات المسموح لهذا الامتحان — راجع الدكتور', 'danger');
+                else if (failKind === 'code') {
+                    const c = window.prompt('كود الدخول غير صحيح. اكتب الكود الصحيح الذي أعلنه الدكتور ثم اضغط تسليم مرة أخرى:');
+                    if (c && c.trim()) sessionState.accessCode = c.trim();
+                    showToast('اضغط تسليم مرة أخرى بعد كتابة الكود الصحيح. إجاباتك محفوظة.', 'warning');
+                }
+                else if (failKind === 'time') showToast('التسليم خارج فترة الامتحان المحددة من الدكتور. راجع الدكتور.', 'danger');
+                else showToast('تعذر تسليم الإجابات (تحقق من الإنترنت). إجاباتك ما زالت محفوظة، اضغط تسليم مرة أخرى.', 'danger');
                 return;
             }
-            let ticketOk = true, attemptOk = true;
-            try { if (uid && typeof window.fbMakeTicket === 'function') await withTimeout(window.fbMakeTicket(exam.id, subId, uid), 10000); } catch (e) { ticketOk = false; console.warn('ticket failed', e); }
-            try { if (typeof window.fbSetAttempt === 'function') await withTimeout(window.fbSetAttempt(subId, { examId: exam.id, studentId: sessionState.studentId, createdAtMs: Date.now() }), 10000); } catch (e) { attemptOk = false; console.warn('attempt failed', e); }
+            setLoaderStep('تم الإرسال، جاري تجهيز الدرجة...');
+            let ticketOk = true;
+            try { if (!isDoctorLoggedIn && uid && typeof window.fbMakeTicket === 'function') await withTimeout(window.fbMakeTicket(exam.id, subId, uid), 10000); } catch (e) { ticketOk = false; console.warn('ticket failed', e); }
 
             // عرض الدرجة فوراً للطالب (إن فعّل الدكتور ذلك) باستخدام مفاتيح الكشف بعد التسليم. الدرجة الرسمية يحسبها الدكتور.
             let local = null;
@@ -2328,9 +2547,8 @@
                 });
                 overlayData = { mS, mM, eS, eM };
             }
-            showToast(`تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.`, 'success');
+            showToast(isDoctorLoggedIn ? `معاينة امتحان "${exam.title}" انتهت — المعاينة لا تسجل أي تسليم.` : `تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.`, isDoctorLoggedIn ? 'info' : 'success');
             if (overlayData) showScoreOverlay(overlayData);
-            if (!attemptOk) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تسجيل المحاولة (الإنترنت ضعيف). لا تعيد الامتحان، وأبلغ الدكتور لو ظهرت أي مشكلة.', 'warning'), 400);
             if (!ticketOk && exam.showScoreToStudent) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
             if (ticketOk && exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
         }
@@ -2432,6 +2650,7 @@
                 tabSwitches,
                 fullscreenExits,
                 wpm,
+                durationSec: Number(sub.durationSec) || 0,
                 alerts: reasons.length ? reasons.join(' + ') + ' — مؤشرات إرشادية وليست دليلاً قاطعاً، والقرار للدكتور.' : 'سلوك طبيعي ومتوافق مع المرجع الدراسي.',
                 gradingReason: `تم تصحيح ${exam.questions.length} أسئلة (${exam.questions.filter(q => q.type === 'mcq').length} اختيارية بتصحيح فوري` + (aiUsed ? `، ${aiUsed} مقالي بالذكاء الاصطناعي` : '') + `) بناءً على مرجع "${exam.courseName}" ونموذج الإجابة المعتمد.`,
                 questionDetails: g.qDetails,
@@ -2560,7 +2779,7 @@
                 `;
                 tbody.appendChild(tr);
             });
-            lucide.createIcons();
+            refreshIcons();
             renderExamStats();
         }
 
@@ -2604,7 +2823,7 @@
             const modal = document.getElementById('grade-edit-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            lucide.createIcons();
+            refreshIcons();
         }
 
         function closeGradeEditor() {
@@ -2653,59 +2872,7 @@
         // إحصائيات الامتحان: المتوسط، أصعب سؤال، توزيع الدرجات
         // =========================================================================
         function renderExamStats() {
-            const list = getFilteredRecords();
-            const avgEl = document.getElementById('stat-avg');
-            const countEl = document.getElementById('stat-count');
-            const hardestEl = document.getElementById('stat-hardest');
-            const hardestAvgEl = document.getElementById('stat-hardest-avg');
-            const distEl = document.getElementById('stat-dist');
-
-            if (!list.length) {
-                avgEl.textContent = '-';
-                countEl.textContent = 'لا توجد نتائج بعد';
-                hardestEl.textContent = '-';
-                hardestAvgEl.textContent = '';
-                distEl.innerHTML = '<span class="text-[11px] text-slate-400 font-bold self-center mx-auto">لا توجد بيانات كافية</span>';
-                return;
-            }
-
-            const pcts = list.map(r => r.maxScore ? (Number(r.score) / Number(r.maxScore)) * 100 : 0);
-            const avg = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
-            avgEl.textContent = `${avg}%`;
-            countEl.textContent = `${list.length} تسليم مسجل`;
-
-            const qMap = {};
-            list.forEach(r => (r.questionDetails || []).forEach(qd => {
-                const key = qd.qText;
-                if (!qMap[key]) qMap[key] = { earned: 0, max: 0 };
-                qMap[key].earned += Number(qd.score) || 0;
-                qMap[key].max += Number(qd.maxScore) || 0;
-            }));
-            let hardest = null;
-            Object.entries(qMap).forEach(([text, v]) => {
-                if (!v.max) return;
-                const ratio = v.earned / v.max;
-                if (!hardest || ratio < hardest.ratio) hardest = { text, ratio };
-            });
-            if (hardest) {
-                hardestEl.textContent = hardest.text;
-                hardestAvgEl.textContent = `متوسط التحصيل: ${Math.round(hardest.ratio * 100)}%`;
-            } else {
-                hardestEl.textContent = '-';
-                hardestAvgEl.textContent = '';
-            }
-
-            const buckets = [0, 0, 0, 0, 0];
-            pcts.forEach(p => { buckets[Math.min(Math.floor(p / 20), 4)]++; });
-            const maxB = Math.max(...buckets, 1);
-            const labels = ['0-20', '20-40', '40-60', '60-80', '80-100'];
-            distEl.innerHTML = buckets.map((c, i) => `
-                <div class="flex-1 flex flex-col items-center justify-end gap-1 h-full">
-                    <span class="text-[10px] font-extrabold text-slate-700">${c}</span>
-                    <div class="w-full bg-primary-500/85 rounded-t-md" style="height:${Math.max(Math.round((c / maxB) * 64), c ? 4 : 0)}px"></div>
-                    <span class="text-[9px] text-slate-500 font-bold">${labels[i]}%</span>
-                </div>
-            `).join('');
+            if (typeof renderStatsTab === 'function') renderStatsTab();
         }
 
 
@@ -2722,6 +2889,11 @@
                         if (typeof window.fbDeleteSubmission === 'function') await window.fbDeleteSubmission(`${rec.examId}_${rec.id}`);
                     } catch (e) {}
                 }
+            }
+            // تحرير حصة التسليمات: نخلي العداد = عدد التسليمات الباقية فعلاً
+            if (typeof window.fbResetExamSubs === 'function') {
+                const ids = Array.from(new Set(toRemove.map(r => r.examId).filter(Boolean)));
+                for (const id of ids) { try { await window.fbResetExamSubs(id); } catch (e) { console.warn('reset subs failed', id, e); } }
             }
             showToast('تم مسح سجل النتائج', 'info');
         }
@@ -3042,14 +3214,424 @@
                 preloader.classList.add("done");
             }, 2150);
         });
+
+        // =========================================================================
+        // v27: نظام الدكاترة المتعددين + الأدمن العام
+        // =========================================================================
+        let isAdminLoggedIn = false;
+        let doctorsList = [];
+        let selectedDoctorUid = null;
+        let selectedDoctorProfile = null;
+        window.__myProfile = null;
+
+        // الشعار = زر الرئيسية حسب الوضع
+        function goHome() {
+            if (isAdminLoggedIn) { switchTab('admin'); return; }
+            if (isDoctorLoggedIn) { switchTab('reports'); return; }
+            switchTab('student');
+        }
+
+        function setBox(id, msg) { const el = document.getElementById(id); if (!el) return; if (msg) { el.textContent = msg; el.classList.remove('hidden'); } else { el.classList.add('hidden'); } }
+
+        // ---------- دخول الدكتور (يشمل الأدمن) ----------
+        function showRequestForm(show) {
+            document.getElementById('dauth-login-card').classList.toggle('hidden', !!show);
+            document.getElementById('dauth-request-card').classList.toggle('hidden', !show);
+            setBox('req-error', ''); setBox('req-warn', ''); window.__noEmailConfirmed = false;
+            const existing = !!window.__signedInNoProfileUid;
+            document.getElementById('req-creds').classList.toggle('hidden', existing);
+            document.getElementById('req-email-wrap').classList.toggle('hidden', existing);
+            document.getElementById('dauth-legacy-note').classList.toggle('hidden', !existing);
+            refreshIcons();
+        }
+
+        async function resolveLoginEmail(input) {
+            const v = String(input || '').trim().toLowerCase();
+            if (v.includes('@')) return v;
+            try { if (typeof window.fbResolveLoginEmail === 'function') { const e = await window.fbResolveLoginEmail(v); if (e) return e; } } catch (e) {}
+            return v + '@doctor.local';
+        }
+
+        async function submitDoctorLoginInline() {
+            const input = document.getElementById('dauth-username').value.trim();
+            const pass = document.getElementById('dauth-password').value.trim();
+            setBox('dauth-error', ''); setBox('dauth-info', '');
+            if (!input || !pass) { setBox('dauth-error', 'اكتب اسم المستخدم (أو الإيميل) وكلمة المرور.'); return; }
+            if (typeof window.doctorSignIn !== 'function') { setBox('dauth-error', 'خدمة المصادقة غير متاحة حالياً — تحقق من الإنترنت.'); return; }
+            try {
+                const email = await resolveLoginEmail(input);
+                await window.doctorSignIn(email, pass);
+                document.getElementById('dauth-password').value = '';
+            } catch (e) {
+                setBox('dauth-error', 'اسم المستخدم أو كلمة المرور غير صحيحة.');
+            }
+        }
+
+        async function forgotPassword() {
+            const input = document.getElementById('dauth-username').value.trim();
+            setBox('dauth-error', ''); setBox('dauth-info', '');
+            if (!input) { setBox('dauth-error', 'اكتب اسم المستخدم أو الإيميل فوق الأول.'); return; }
+            const email = await resolveLoginEmail(input);
+            if (/@doctor\.local$/i.test(email)) { setBox('dauth-error', 'الحساب ده متسجل من غير إيميل، فمفيش استرجاع ذاتي. تواصل مع الأدمن.'); return; }
+            try { await window.fbSendReset(email); } catch (e) { /* لا نكشف وجود الحساب */ }
+            setBox('dauth-info', 'لو الحساب مسجل بالإيميل ده، هيوصله لينك لتغيير كلمة المرور. شوف الـ Inbox والـ Spam.');
+        }
+
+        // ---------- طلب حساب دكتور ----------
+        async function submitDoctorRequest() {
+            const name = document.getElementById('req-name').value.trim();
+            const email = document.getElementById('req-email').value.trim().toLowerCase();
+            const username = document.getElementById('req-username').value.trim().toLowerCase();
+            const pass = document.getElementById('req-password').value;
+            const btn = document.getElementById('req-submit-btn');
+            setBox('req-error', '');
+            const fail = (m) => setBox('req-error', m);
+            const existingAccount = !!(window.__signedInNoProfileUid);
+            if (name.length < 3) return fail('اكتب اسم الدكتور كامل.');
+            if (!existingAccount) {
+                if (!/^[a-z0-9_]{3,30}$/.test(username)) return fail('اسم المستخدم: حروف إنجليزية صغيرة وأرقام و _ بس، من ٣ لـ ٣٠ حرف.');
+                if (pass.length < 6) return fail('كلمة المرور ٦ أحرف على الأقل.');
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('البريد الإلكتروني غير صحيح.');
+                if (!email && !window.__noEmailConfirmed) {
+                    setBox('req-warn', 'تنبيه: لم تدخل بريدًا إلكترونيًا. من غير إيميل مش هتقدر تسترجع حسابك لو نسيت كلمة المرور. اضغط "إرسال الطلب" مرة تانية لو عايز تكمل من غير إيميل.');
+                    window.__noEmailConfirmed = true;
+                    return;
+                }
+            }
+            if (typeof window.fbCreateDoctorRequest !== 'function') return fail('الخدمة غير متاحة حالياً — تحقق من الإنترنت.');
+            btn.disabled = true;
+            try {
+                await window.fbCreateDoctorRequest({ name, email, username, password: pass, existingUid: window.__signedInNoProfileUid || null });
+                showToast('تم إرسال طلبك للأدمن — هتقدر تدخل أول ما يوافق', 'success');
+                ['req-name', 'req-email', 'req-username', 'req-password'].forEach(i => { document.getElementById(i).value = ''; });
+                window.__signedInNoProfileUid = null;
+                showRequestForm(false);
+                switchTab('student');
+            } catch (e) {
+                const code = (e && e.code) || '';
+                if (code === 'app/username-taken') fail('اسم المستخدم ده محجوز، اختار اسم تاني.');
+                else if (code === 'auth/email-already-in-use') fail('اسم المستخدم أو الإيميل ده مرتبط بحساب قديم. لو ده حسابك سجل دخول بيه من شاشة الدخول وابعت طلب جديد من هناك.');
+                else if (code === 'permission-denied' || /permission/i.test(String(e))) fail('تعذر تسجيل الطلب. ممكن يكون الاسم محجوز أو الطلب اتسجل قبل كده.');
+                else fail('تعذر إرسال الطلب — تحقق من الإنترنت وحاول تاني.');
+            } finally { btn.disabled = false; }
+        }
+
+        // ---------- اختيار الدكتور (بوابة الطالب): الاسم المعروض فقط ----------
+        function doctorPickerAvailable() {
+            return Array.isArray(doctorsList) && doctorsList.length > 0;
+        }
+        function normalizeSearch(s) { return String(s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').trim(); }
+
+        function filterDoctorSuggestions() {
+            const box = document.getElementById('doctor-suggestions');
+            const q = normalizeSearch(document.getElementById('student-doctor-search').value);
+            if (!doctorPickerAvailable()) { box.classList.add('hidden'); return; }
+            const matches = doctorsList.filter(d => !q || normalizeSearch(d.name).includes(q)).slice(0, 6);
+            if (!matches.length) { box.innerHTML = '<div class="px-4 py-3 text-xs text-slate-400 text-center">مفيش دكتور بالاسم ده</div>'; box.classList.remove('hidden'); return; }
+            box.innerHTML = matches.map(d => {
+                const initial = escapeHtml((d.name || '؟').replace(/^د\.\s*/, '').trim().charAt(0) || '؟');
+                return `<button type="button" onclick="selectDoctor('${d.uid}')" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-right border-b border-slate-100 last:border-0 transition">
+                    <span class="w-8 h-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center font-extrabold text-sm shrink-0">${initial}</span>
+                    <span class="text-sm font-bold text-slate-900">${escapeHtml(d.name)}</span>
+                </button>`;
+            }).join('');
+            box.classList.remove('hidden');
+        }
+
+        function selectDoctor(uid) {
+            const d = doctorsList.find(x => x.uid === uid);
+            if (!d) return;
+            selectedDoctorUid = uid; selectedDoctorProfile = d;
+            document.getElementById('doctor-search-wrap').classList.add('hidden');
+            document.getElementById('doctor-suggestions').classList.add('hidden');
+            document.getElementById('doctor-selected-label').textContent = `الدكتور المختار: ${d.name}`;
+            document.getElementById('doctor-selected-chip').classList.remove('hidden');
+            document.getElementById('doctor-selected-chip').classList.add('flex');
+            populateStudentExamSelector();
+            refreshIcons();
+        }
+
+        function clearSelectedDoctor() {
+            selectedDoctorUid = null; selectedDoctorProfile = null;
+            document.getElementById('doctor-selected-chip').classList.add('hidden');
+            document.getElementById('doctor-selected-chip').classList.remove('flex');
+            document.getElementById('doctor-search-wrap').classList.remove('hidden');
+            document.getElementById('student-doctor-search').value = '';
+            populateStudentExamSelector();
+        }
+
+        async function loadApprovedDoctors() {
+            try {
+                if (typeof window.fbListApprovedDoctors === 'function') {
+                    doctorsList = await window.fbListApprovedDoctors();
+                    const picker = document.getElementById('student-doctor-picker');
+                    if (picker) picker.classList.toggle('hidden', !doctorPickerAvailable());
+                    if (selectedDoctorUid && !doctorsList.some(d => d.uid === selectedDoctorUid)) clearSelectedDoctor();
+                    else populateStudentExamSelector();
+                }
+            } catch (e) { console.warn('doctors list failed', e); doctorsList = []; }
+        }
+
+        // ---------- حدود الدكتور (تجميد / سقف امتحانات) ----------
+        function updateFrozenBanner() {
+            let b = document.getElementById('frozen-banner');
+            const frozen = !!(window.__myProfile && window.__myProfile.frozen) && isDoctorLoggedIn;
+            if (!b) {
+                b = document.createElement('div');
+                b.id = 'frozen-banner';
+                b.className = 'hidden max-w-7xl mx-auto mt-4 px-4 sm:px-6 lg:px-8';
+                b.innerHTML = '<div class="bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold rounded-xl px-4 py-3">حسابك مجمّد: ممكن تشوف بياناتك ونتايجك، لكن مينفعش تنشئ أو تعدّل امتحانات. تواصل مع الأدمن.</div>';
+                const main = document.querySelector('main');
+                if (main) main.parentNode.insertBefore(b, main);
+            }
+            b.classList.toggle('hidden', !frozen);
+        }
+        function examCreateBlockReason() {
+            const p = window.__myProfile || {};
+            if (p.frozen) return 'حسابك مجمّد: مينفعش تنشئ امتحانات جديدة. تواصل مع الأدمن.';
+            if (typeof p.maxExams === 'number' && (p.examsCreated || 0) >= p.maxExams) return `وصلت للحد الأقصى من الامتحانات (${p.maxExams}). تواصل مع الأدمن لزيادته.`;
+            return '';
+        }
+
+        // ---------- الأدمن: اللوحة ----------
+        function doctorInitials(name) { return escapeHtml(String(name || '؟').replace(/^د\.\s*/, '').trim().charAt(0) || '؟'); }
+        function timeAgoAr(ms) {
+            if (!ms) return '';
+            const mins = Math.floor((Date.now() - ms) / 60000);
+            if (mins < 1) return 'دلوقتي';
+            if (mins < 60) return `من ${mins} دقيقة`;
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return `من ${hrs} ساعة`;
+            return `من ${Math.floor(hrs / 24)} يوم`;
+        }
+
+        async function loadAdminPanel() {
+            if (!isAdminLoggedIn || typeof window.fbAdminListData !== 'function') return;
+            try { renderAdminPanel(await window.fbAdminListData()); }
+            catch (e) { console.warn('admin panel failed', e); showToast('تعذر تحميل بيانات الأدمن — تأكد من نشر القواعد الجديدة', 'danger'); }
+        }
+
+        function renderAdminPanel(data) {
+            const { doctors, counts, totalExams, totalResults, legacyCount } = data;
+            window.__adminDoctors = doctors;
+            const pending = doctors.filter(d => d.status !== 'approved');
+            const approved = doctors.filter(d => d.status === 'approved');
+            document.getElementById('adm-stat-doctors').textContent = approved.length;
+            document.getElementById('adm-stat-pending').textContent = pending.length;
+            document.getElementById('adm-stat-exams').textContent = totalExams;
+            document.getElementById('adm-stat-results').textContent = totalResults;
+            const pb = document.getElementById('adm-pending-badge');
+            pb.textContent = pending.length ? `${pending.length} طلب جديد` : '';
+            pb.classList.toggle('hidden', !pending.length);
+            document.getElementById('adm-pending-empty').classList.toggle('hidden', !!pending.length);
+            document.getElementById('adm-pending-list').innerHTML = pending.map(d => `
+                <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-400 bg-amber-50/40 p-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-extrabold">${doctorInitials(d.name)}</div>
+                        <div>
+                            <p class="text-sm font-extrabold text-slate-900">${escapeHtml(d.name)}</p>
+                            <p class="text-[11px] text-slate-500"><span class="font-mono" dir="ltr">${escapeHtml(d.username || '')}</span> • ${d.email ? `<span dir="ltr">${escapeHtml(d.email)}</span>` : 'بدون إيميل'} • ${timeAgoAr(d.createdAtMs)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-extrabold">
+                        <button onclick="approveDoctorRequest('${d.uid}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> قبول</button>
+                        <button onclick="rejectDoctorRequest('${d.uid}')" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1"><i data-lucide="x" class="w-3.5 h-3.5"></i> رفض</button>
+                    </div>
+                </div>`).join('');
+
+            const c = (uid) => (counts && counts[uid]) || { exams: 0, results: 0 };
+            let known = { exams: 0, results: 0 };
+            approved.forEach(d => { known.exams += c(d.uid).exams; known.results += c(d.uid).results; });
+            const deletedRow = (totalExams - known.exams > 0 || totalResults - known.results > 0)
+                ? `<div class="rounded-xl border border-dashed border-slate-300 p-3 text-[11px] font-bold text-slate-500">حسابات محذوفة أو غير معتمدة: ${Math.max(totalExams - known.exams, 0)} امتحان • ${Math.max(totalResults - known.results, 0)} نتيجة (محفوظة في السجل)</div>` : '';
+            document.getElementById('adm-doctors-list').innerHTML = (approved.length ? approved.map(d => `
+                <div class="rounded-xl border ${d.frozen ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'} p-3 space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center font-extrabold">${doctorInitials(d.name)}</div>
+                            <div>
+                                <p class="text-sm font-extrabold text-slate-900">${escapeHtml(d.name)} ${d.frozen ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full mr-1">مجمّد</span>' : ''}</p>
+                                <p class="text-[11px] text-slate-500"><span class="font-mono" dir="ltr">${escapeHtml(d.username || '')}</span>${d.email ? ` • <span dir="ltr">${escapeHtml(d.email)}</span>` : ''}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-[11px] font-bold">
+                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">${c(d.uid).exams} امتحان أنشأه</span>
+                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">${c(d.uid).results} نتيجة استلمها</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-end gap-2 text-[11px] font-bold">
+                        <label class="text-slate-500">أقصى عدد امتحانات<input id="lim-exams-${d.uid}" type="number" min="0" value="${typeof d.maxExams === 'number' ? d.maxExams : ''}" placeholder="بدون حد" class="block w-28 mt-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800"></label>
+                        <label class="text-slate-500">أقصى تسليمات لكل امتحان<input id="lim-subs-${d.uid}" type="number" min="0" value="${typeof d.maxSubsPerExam === 'number' ? d.maxSubsPerExam : ''}" placeholder="بدون حد" class="block w-32 mt-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-800"></label>
+                        <button onclick="saveDoctorLimits('${d.uid}')" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg transition">حفظ الحدود</button>
+                        <button onclick="toggleDoctorFreeze('${d.uid}', ${d.frozen ? 'false' : 'true'})" class="border border-amber-300 text-amber-800 hover:bg-amber-50 px-3 py-2 rounded-lg transition">${d.frozen ? 'إلغاء التجميد' : 'تجميد'}</button>
+                        <button onclick="deleteDoctorAccount('${d.uid}')" class="mr-auto text-rose-600 hover:bg-rose-50 border border-rose-200 px-3 py-2 rounded-lg transition">حذف نهائي</button>
+                    </div>
+                </div>`).join('') : '<p class="text-xs text-slate-400 text-center py-3">مفيش دكاترة معتمدين لسه.</p>') + deletedRow;
+
+            const legacyCard = document.getElementById('adm-legacy-card');
+            legacyCard.classList.toggle('hidden', !legacyCount);
+            document.getElementById('adm-legacy-count').textContent = legacyCount;
+            document.getElementById('adm-legacy-doctor').innerHTML = approved.map(d => `<option value="${d.uid}" ${d.uid === window.__myUid ? 'selected' : ''}>${escapeHtml(d.name)}${d.uid === window.__myUid ? ' (حسابي)' : ''}</option>`).join('');
+            refreshIcons();
+        }
+
+        async function approveDoctorRequest(uid) {
+            try { await window.fbApproveDoctor(uid); showToast('تم قبول الدكتور — يقدر يدخل ويشتغل دلوقتي', 'success'); loadAdminPanel(); }
+            catch (e) { showToast('تعذر القبول — حاول تاني', 'danger'); }
+        }
+
+        async function rejectDoctorRequest(uid) {
+            const ok = await showConfirmModal({ title: 'رفض الطلب', message: 'الطلب هيترفض ويتمسح، وصاحبه مش هيقدر يدخل. متأكد؟', confirmLabel: 'رفض الطلب' });
+            if (!ok) return;
+            try { await window.fbRejectDoctor(uid); showToast('تم رفض الطلب', 'info'); loadAdminPanel(); }
+            catch (e) { showToast('تعذر الرفض — حاول تاني', 'danger'); }
+        }
+
+        async function saveDoctorLimits(uid) {
+            const num = (id) => { const v = document.getElementById(id).value.trim(); if (v === '') return null; const n = Math.floor(Number(v)); return (isFinite(n) && n >= 0) ? n : NaN; };
+            const me = num('lim-exams-' + uid), ms = num('lim-subs-' + uid);
+            if (Number.isNaN(me) || Number.isNaN(ms)) { showToast('اكتب رقم صحيح أو سيب الحقل فاضي', 'warning'); return; }
+            try { await window.fbSetDoctorLimits(uid, me, ms); showToast('تم حفظ الحدود', 'success'); loadAdminPanel(); }
+            catch (e) { showToast('تعذر حفظ الحدود — حاول تاني', 'danger'); }
+        }
+
+        async function toggleDoctorFreeze(uid, freeze) {
+            if (freeze) {
+                const ok = await showConfirmModal({ title: 'تجميد الدكتور', message: 'هيفضل يدخل ويشوف بياناته وامتحاناته تفضل مفتوحة للطلاب، بس مش هيقدر ينشئ أو يعدّل امتحانات. تقدر ترجعه في أي وقت.', confirmLabel: 'تجميد' });
+                if (!ok) return;
+            }
+            try { await window.fbSetDoctorFrozen(uid, !!freeze); showToast(freeze ? 'تم تجميد الدكتور' : 'تم إلغاء التجميد', 'info'); loadAdminPanel(); }
+            catch (e) { showToast('تعذر التنفيذ — حاول تاني', 'danger'); }
+        }
+
+        let deleteBusy = false;
+        async function deleteDoctorAccount(uid) {
+            if (deleteBusy) return;
+            const d = (window.__adminDoctors || []).find(x => x.uid === uid);
+            let cnt;
+            try { cnt = await window.fbCountDoctorData(uid); } catch (e) { showToast('تعذر قراءة بيانات الدكتور — حاول تاني', 'danger'); return; }
+            const ok = await showConfirmModal({
+                title: 'حذف نهائي للدكتور',
+                message: `هيتمسح ${d ? d.name : 'الدكتور'} وكل بياناته: ${cnt.exams} امتحان و ${cnt.results} نتيجة و ${cnt.submissions} تسليم وكل مفاتيح الإجابات وإعداداته. مفيش تراجع. الأعداد التراكمية في لوحتك بتفضل محفوظة.`,
+                confirmLabel: 'حذف نهائي'
+            });
+            if (!ok) return;
+            deleteBusy = true;
+            showToast('جاري الحذف... متقفلش الصفحة', 'warning');
+            try {
+                await window.fbDeleteDoctorCascade(uid, (d && d.username) || '');
+                showToast('تم حذف الدكتور وكل بياناته. لو عايز تمسح حساب الدخول نفسه: Firebase → Authentication.', 'success');
+            } catch (e) { console.warn('cascade failed', e); showToast('الحذف ما كملش — اضغط حذف تاني عشان يكمل', 'danger'); }
+            finally { deleteBusy = false; loadAdminPanel(); }
+        }
+
+        // ---------- ترحيل البيانات القديمة ----------
+        let migrationBusy = false;
+        async function runLegacyMigration() {
+            if (migrationBusy) return;
+            const targetUid = document.getElementById('adm-legacy-doctor').value;
+            if (!targetUid) { showToast('اختر الدكتور الأول', 'warning'); return; }
+            const targetName = ((window.__adminDoctors || []).find(d => d.uid === targetUid) || {}).name || '';
+            const ok = await showConfirmModal({ title: 'ربط البيانات القديمة', message: 'هينزل ملف نسخة احتياطية على جهازك الأول، وبعدين كل المستندات القديمة هتتربط بالدكتور المختار. مفيش حاجة هتتمسح.', confirmLabel: 'ابدأ الربط' });
+            if (!ok) return;
+            migrationBusy = true;
+            const btn = document.getElementById('adm-migrate-btn');
+            btn.disabled = true; btn.textContent = 'جاري الربط...';
+            try {
+                const result = await window.fbMigrateLegacyData(targetUid, targetName);
+                const blob = new Blob([JSON.stringify(result.backup, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `smart-platform-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showToast(`تم ربط ${result.tagged} مستند قديم، والنسخة الاحتياطية نزلت على جهازك`, 'success');
+                loadAdminPanel();
+            } catch (e) {
+                console.warn('migration failed', e);
+                showToast('الترحيل ما كملش — البيانات زي ما هي، حاول تاني', 'danger');
+            } finally { migrationBusy = false; btn.disabled = false; btn.textContent = 'تحميل نسخة احتياطية + ربط البيانات القديمة'; }
+        }
+
+        // =========================================================================
+        // تبويب إحصائياتي (من نتايج الدكتور الحالية)
+        // =========================================================================
+        function renderStatsTab() {
+            const sel = document.getElementById('stats-exam-filter');
+            if (!sel) return;
+            const prev = sel.value || 'ALL';
+            const titles = {};
+            examRecords.forEach(r => { titles[r.examId] = r.examTitle || r.examId; });
+            sel.innerHTML = '<option value="ALL" style="color:#000">كل الامتحانات</option>' + Object.keys(titles).map(id => `<option value="${escapeHtml(id)}" style="color:#000">${escapeHtml(titles[id])}</option>`).join('');
+            sel.value = (prev === 'ALL' || titles[prev]) ? prev : 'ALL';
+            const list = sel.value === 'ALL' ? examRecords : examRecords.filter(r => r.examId === sel.value);
+            document.getElementById('stats-empty').classList.toggle('hidden', list.length > 0);
+            document.getElementById('stats-body').classList.toggle('hidden', list.length === 0);
+            if (!list.length) return;
+
+            const pct = (r) => r.maxScore ? (Number(r.score) / Number(r.maxScore)) * 100 : 0;
+            const avgOf = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+            const pcts = list.map(pct);
+            const avg = avgOf(pcts);
+            const passN = pcts.filter(p => p >= 50).length;
+            const reviewN = list.filter(r => r.status && r.status !== 'سليم').length;
+            const now = Date.now(), day = 86400000;
+            const last7 = list.filter(r => now - (r.createdAtMs || 0) < 7 * day).map(pct);
+            const prev7 = list.filter(r => { const a = now - (r.createdAtMs || 0); return a >= 7 * day && a < 14 * day; }).map(pct);
+            let trend = '';
+            if (last7.length && prev7.length) { const dlt = Math.round(avgOf(last7) - avgOf(prev7)); trend = dlt === 0 ? '<span class="text-slate-400">ثابت عن الأسبوع اللي فات</span>' : `<span class="${dlt > 0 ? 'text-emerald-600' : 'text-rose-600'}">${dlt > 0 ? '▲' : '▼'} ${Math.abs(dlt)}% عن الأسبوع اللي فات</span>`; }
+            const kpi = (v, l, sub, cls) => `<div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><span class="text-2xl font-extrabold ${cls} block">${v}</span><span class="text-[11px] text-slate-500 block mt-1">${l}</span><span class="text-[10px] font-bold block mt-1">${sub || ''}</span></div>`;
+            document.getElementById('stats-kpis').innerHTML =
+                kpi(list.length, 'إجمالي التسليمات', '', 'text-primary-700') +
+                kpi(Math.round(avg) + '%', 'متوسط الدرجات', trend, 'text-primary-700') +
+                kpi(Math.round(passN / list.length * 100) + '%', 'نسبة النجاح', `${passN} من ${list.length} (الحد ٥٠٪)`, 'text-emerald-600') +
+                kpi(reviewN, 'حالات تحتاج مراجعة', `${Math.round(reviewN / list.length * 100)}% من التسليمات`, 'text-amber-600');
+
+            const buckets = [0, 0, 0, 0, 0]; pcts.forEach(p => { buckets[Math.min(Math.floor(p / 20), 4)]++; });
+            const maxB = Math.max(...buckets, 1), labels = ['0-20', '20-40', '40-60', '60-80', '80-100'];
+            document.getElementById('stats-dist').innerHTML = buckets.map((c, i) => `<div class="flex-1 flex flex-col items-center justify-end gap-1 h-full"><span class="text-[10px] font-extrabold text-slate-700">${c} <span class="text-slate-400">(${Math.round(c / list.length * 100)}%)</span></span><div class="w-full bg-primary-500/85 rounded-t-md" style="height:${Math.max(Math.round(c / maxB * 100), c ? 4 : 0)}px"></div><span class="text-[10px] text-slate-500 font-bold">${labels[i]}%</span></div>`).join('');
+
+            const days = new Array(30).fill(0);
+            list.forEach(r => { const a = Math.floor((now - (r.createdAtMs || 0)) / day); if (a >= 0 && a < 30) days[29 - a]++; });
+            const maxD = Math.max(...days, 1);
+            document.getElementById('stats-timeline').innerHTML = days.map(c => `<div class="flex-1 bg-emerald-500/80 rounded-t" title="${c}" style="height:${Math.max(Math.round(c / maxD * 140), c ? 4 : 1)}px"></div>`).join('');
+
+            const byExam = {};
+            list.forEach(r => { (byExam[r.examId] = byExam[r.examId] || { title: r.examTitle || r.examId, recs: [] }).recs.push(r); });
+            const fmtMin = (s) => s ? (s >= 60 ? Math.round(s / 60) + ' د' : Math.round(s) + ' ث') : '-';
+            document.getElementById('stats-exams-table').innerHTML = Object.values(byExam).map(g => {
+                const p = g.recs.map(pct);
+                const dur = g.recs.map(r => Number(r.durationSec) || 0).filter(x => x > 0), wp = g.recs.map(r => Number(r.wpm) || 0).filter(x => x > 0);
+                return `<tr class="border-b border-slate-100"><td class="py-2 font-bold text-slate-800">${escapeHtml(g.title)}</td><td>${g.recs.length}</td><td>${Math.round(avgOf(p))}%</td><td>${Math.round(Math.max(...p))}%</td><td>${Math.round(Math.min(...p))}%</td><td>${Math.round(p.filter(x => x >= 50).length / p.length * 100)}%</td><td>${g.recs.filter(r => r.status && r.status !== 'سليم').length}</td><td>${fmtMin(avgOf(dur))}</td><td>${wp.length ? Math.round(avgOf(wp)) : '-'}</td></tr>`;
+            }).join('');
+
+            const qMap = {};
+            list.forEach(r => (r.questionDetails || []).forEach(qd => { const k = qd.qText; if (!qMap[k]) qMap[k] = { e: 0, m: 0 }; qMap[k].e += Number(qd.score) || 0; qMap[k].m += Number(qd.maxScore) || 0; }));
+            const qs = Object.entries(qMap).filter(([, v]) => v.m).map(([t, v]) => ({ t, r: v.e / v.m })).sort((a, b) => a.r - b.r);
+            const qRow = (q, c) => `<div class="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"><span class="font-bold text-slate-800">${escapeHtml(q.t)}</span><span class="font-extrabold ${c} shrink-0">${Math.round(q.r * 100)}%</span></div>`;
+            document.getElementById('stats-hard').innerHTML = qs.slice(0, 5).map(q => qRow(q, 'text-rose-600')).join('') || '<span class="text-slate-400">لا توجد بيانات</span>';
+            document.getElementById('stats-easy').innerHTML = qs.slice().reverse().slice(0, 5).map(q => qRow(q, 'text-emerald-600')).join('') || '<span class="text-slate-400">لا توجد بيانات</span>';
+
+            const sCount = { 'سليم': 0, 'مراجعة': 0, 'اشتباه مرتفع': 0 };
+            list.forEach(r => { const k = sCount.hasOwnProperty(r.status) ? r.status : 'مراجعة'; sCount[k]++; });
+            const a1 = sCount['سليم'] / list.length * 360, a2 = a1 + sCount['مراجعة'] / list.length * 360;
+            document.getElementById('stats-integrity').innerHTML = `<div class="flex flex-wrap items-center gap-6"><div class="w-28 h-28 rounded-full shrink-0" style="background:conic-gradient(#10b981 0 ${a1}deg,#f59e0b ${a1}deg ${a2}deg,#e11d48 ${a2}deg 360deg);-webkit-mask:radial-gradient(circle 34px,transparent 98%,#000 100%);mask:radial-gradient(circle 34px,transparent 98%,#000 100%)"></div><div class="space-y-1.5 text-xs font-bold"><div><span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 ml-1.5"></span>سليم: ${sCount['سليم']}</div><div><span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 ml-1.5"></span>مراجعة: ${sCount['مراجعة']}</div><div><span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-600 ml-1.5"></span>اشتباه مرتفع: ${sCount['اشتباه مرتفع']}</div></div></div><div class="grid grid-cols-3 gap-2 mt-4 text-center text-[11px] font-bold text-slate-600"><div class="bg-slate-50 rounded-xl p-2 border border-slate-200"><span class="block text-base font-extrabold text-slate-900">${avgOf(list.map(r => Number(r.pasteCount) || 0)).toFixed(1)}</span>لصق / تسليم</div><div class="bg-slate-50 rounded-xl p-2 border border-slate-200"><span class="block text-base font-extrabold text-slate-900">${avgOf(list.map(r => Number(r.tabSwitches) || 0)).toFixed(1)}</span>تبديل تاب</div><div class="bg-slate-50 rounded-xl p-2 border border-slate-200"><span class="block text-base font-extrabold text-slate-900">${avgOf(list.map(r => Number(r.fullscreenExits) || 0)).toFixed(1)}</span>خروج من الشاشة الكاملة</div></div>`;
+
+            const sorted = list.slice().sort((a, b) => pct(b) - pct(a));
+            const stRow = (r) => `<div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5"><span class="font-bold text-slate-800">${escapeHtml(r.name)} <span class="text-slate-400 font-mono">${escapeHtml(r.id)}</span></span><span class="font-extrabold text-slate-700">${Math.round(pct(r))}%</span></div>`;
+            document.getElementById('stats-top').innerHTML = sorted.slice(0, 5).map(stRow).join('');
+            document.getElementById('stats-bottom').innerHTML = sorted.slice(-5).reverse().map(stRow).join('');
+        }
+
     </script>
+
     <script type="module">
         // =========================================================================
         // ربط Firebase: Firestore للامتحانات والنتائج + Firebase Auth لدخول الدكتور
         // =========================================================================
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCoyMdAycrkpD54iG98Oh7wp2W-15aiyOg",
@@ -3067,11 +3649,17 @@
         let resultsUnsub = null;
         let subsUnsub = null;
 
-        // تحميل الامتحانات المنشورة من قاعدة البيانات (متاحة للطلاب بدون دخول)
+        // تحميل الامتحانات المنشورة من قاعدة البيانات (الطالب يدخل بجلسة مجهولة أولاً)
+        let resolveFirstAuth;
+        const firstAuthPromise = new Promise(r => { resolveFirstAuth = r; });
         const examsLoadedPromise = (async () => {
             // ننتظر انتهاء window.onload (loadState) حتى لا يمسح تحميل الامتحانات من قاعدة البيانات
             if (document.readyState !== 'complete') await new Promise(r => window.addEventListener('load', () => setTimeout(r, 0)));
             try {
+                // لو فيه جلسة دكتور/أدمن محفوظة، تحميل الامتحانات بيتعمل بصلاحياته في مكانه
+                const firstUser = await Promise.race([firstAuthPromise, new Promise(r => setTimeout(() => r('timeout'), 4000))]);
+                if (firstUser && firstUser !== 'timeout' && !firstUser.isAnonymous) return;
+                await window.fbEnsureAnon();
                 const snap = await getDocs(collection(fbDb, 'exams'));
                 if (!snap.empty) {
                     const remote = snap.docs.map(d => d.data()).filter(e => e && e.id && Array.isArray(e.questions));
@@ -3082,65 +3670,143 @@
                         currentDoctorExamId = exams[0].id;
                         localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(exams));
                         populateStudentExamSelector();
-                        if (isDoctorLoggedIn) populateDoctorWorkspace();
                     }
                 }
+                loadApprovedDoctors();
             } catch (e) {
                 console.warn('تعذر تحميل الامتحانات من قاعدة البيانات، يتم العمل بالنسخة المحلية', e);
             }
         })();
 
-        // حالة دخول الدكتور عبر Firebase Auth
-        onAuthStateChanged(fbAuth, (user) => {
-            if (user && user.isAnonymous) return; // طالب بجلسة مجهولة: ليس دكتوراً
-            isDoctorLoggedIn = !!user;
-            window.doctorEmail = user ? (user.email || 'الدكتور') : '';
+        // تحميل امتحانات دكتور معيّن (بعد تسجيل الدخول)
+        async function loadDoctorExams(uid) {
+            await examsLoadedPromise;
+            try {
+                const snap = await getDocs(query(collection(fbDb, 'exams'), where('doctorUid', '==', uid)));
+                const remote = snap.docs.map(d => d.data()).filter(e => e && e.id && Array.isArray(e.questions));
+                window.__remoteWithAnswers = new Set(remote.filter(e => e.questions.some(q => ('modelAnswer' in q) || ('correctIndex' in q))).map(e => e.id));
+                remote.forEach(e => { if (!window.__remoteWithAnswers.has(e.id)) e._noKeys = true; });
+                exams = remote;
+            } catch (e) {
+                console.warn('تعذر تحميل امتحانات الدكتور', e);
+                exams = [];
+            }
+            if (!exams.length) {
+                window.__bootstrapExam = true; try { createNewExamTemplate(); } finally { window.__bootstrapExam = false; }
+            }
+            currentDoctorExamId = exams[0] ? exams[0].id : null;
+            localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(exams));
+        }
+
+        // حالة الدخول: أدمن (وهو دكتور كمان لو معتمد) أو دكتور معتمد أو طلب قيد المراجعة
+        onAuthStateChanged(fbAuth, (user) => { handleAuthUser(user).catch(e => console.warn('auth flow failed', e)); });
+
+        async function handleAuthUser(user) {
+            resolveFirstAuth(user || null);
+            if (user && user.isAnonymous) return;
+            if (!user) { resetToVisitor(); return; }
+
+            window.__myUid = user.uid;
+            window.doctorEmail = user.email || '';
+            let adminSnap = null, docSnap = null;
+            try {
+                adminSnap = await getDoc(doc(fbDb, 'admins', user.uid));
+                docSnap = await getDoc(doc(fbDb, 'doctors', user.uid));
+            } catch (e) {
+                showToast('تعذر التحقق من الصلاحيات — تأكد من نشر قواعد قاعدة البيانات الجديدة', 'danger');
+                try { await signOut(fbAuth); } catch (e2) {}
+                return;
+            }
+            const isAdm = !!(adminSnap && adminSnap.exists());
+            const prof = (docSnap && docSnap.exists()) ? docSnap.data() : null;
+
+            if (isAdm) { await enterSession(user, true, (prof && prof.status === 'approved') ? prof : null); return; }
+            if (prof && prof.status === 'approved') { await enterSession(user, false, prof); return; }
+            if (prof) {
+                showToast('طلبك لسه قيد المراجعة — هتقدر تدخل بعد موافقة الأدمن', 'warning');
+                try { await signOut(fbAuth); } catch (e) {}
+                return;
+            }
+            // حساب موجود بلا ملف دكتور (حساب قديم): يكمل طلب الانضمام
+            window.__signedInNoProfileUid = user.uid;
+            switchTab('doctor-auth');
+            showRequestForm(true);
+            showToast('الحساب ده لسه معملش طلب انضمام — اكتب اسمك وابعت الطلب للأدمن', 'info');
+        }
+
+        async function enterSession(user, asAdmin, prof) {
+            isAdminLoggedIn = asAdmin;
+            isDoctorLoggedIn = !!prof;
+            window.__myUid = user.uid;
+            window.__myProfile = prof || null;
+            window.__myDoctorName = asAdmin ? ((prof && prof.name) || 'الأدمن العام') : (prof.name || '');
+            window.__signedInNoProfileUid = null;
             updateDoctorAuthUI();
+            updateFrozenBanner();
             const firstAuthEvent = !window.__authInit;
             window.__authInit = true;
-            if (user) {
-                populateDoctorWorkspace();
-                // عند تحديث الصفحة والدكتور مسجّل دخوله: يبقى في جهة الدكتور (آخر تبويب، والنتائج افتراضياً)
-                if (firstAuthEvent && !(sessionState && sessionState.active)) {
-                    let last = 'reports';
-                    try { last = localStorage.getItem('doctor_last_tab_v1') || 'reports'; } catch (e) {}
-                    if (!['doctor', 'email', 'reports'].includes(last)) last = 'reports';
-                    switchTab(last);
-                }
-                doctorSyncKeys();
-                getDoc(doc(fbDb, 'settings', 'doctor')).then(s => {
-                    if (s.exists() && typeof s.data().notifyEmail === 'string') {
-                        localStorage.setItem('doctor_notify_email_v1', s.data().notifyEmail);
-                        const f = document.getElementById('doc-notify-email'); if (f) f.value = s.data().notifyEmail;
-                    }
-                }).catch(() => {});
-                // الاشتراك الحي في النتائج (للدكتور فقط بحسب قواعد الأمان)
-                if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
-                resultsUnsub = onSnapshot(collection(fbDb, 'results'), (snap) => {
-                    examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
-                    examRecords.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
-                    renderExcelTable();
-                    window.__resultsReady = true;
-                    if (typeof autoSendTick === 'function') autoSendTick();
-                }, (err) => console.warn('تعذر الاشتراك في النتائج', err));
-                // تسليمات الطلاب الخام: الدكتور يصححها ويحوّلها لنتائج
-                if (subsUnsub) { subsUnsub(); subsUnsub = null; }
-                subsUnsub = onSnapshot(collection(fbDb, 'submissions'), (snap) => {
-                    window.__submissions = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
-                    window.__subsReady = true;
-                    if (typeof processPendingSubmissions === 'function') processPendingSubmissions().then(() => { if (typeof autoSendTick === 'function') autoSendTick(); });
-                }, (err) => console.warn('تعذر الاشتراك في التسليمات', err));
-            } else {
-                if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
-                if (subsUnsub) { subsUnsub(); subsUnsub = null; }
-                window.__subsReady = false; window.__submissions = []; window.__keysReady = false;
-                examRecords = [];
-                window.__resultsReady = false;
-                renderExcelTable();
-                wipeDoctorEditor();
-                switchTab('student');
+            if (!prof) {
+                showToast('مرحباً — تم فتح لوحة الأدمن. لتفعيل شغلك كدكتور اقبل طلبك من اللوحة.', 'success');
+                switchTab('admin');
+                return;
             }
-        });
+            await loadDoctorExams(user.uid);
+            populateDoctorWorkspace();
+            if (asAdmin) {
+                switchTab('admin');
+            } else if (firstAuthEvent && !(sessionState && sessionState.active)) {
+                let last = 'reports';
+                try { last = localStorage.getItem('doctor_last_tab_v1') || 'reports'; } catch (e) {}
+                if (!['doctor', 'stats', 'email', 'reports'].includes(last)) last = 'reports';
+                switchTab(last);
+            } else {
+                switchTab('reports');
+            }
+            showToast(`أهلاً ${prof.name || 'بك'}`, 'success');
+            doctorSyncKeys();
+            getDoc(doc(fbDb, 'settings', 'doc_' + user.uid)).then(s => {
+                if (s.exists() && typeof s.data().notifyEmail === 'string') {
+                    localStorage.setItem('doctor_notify_email_v1', s.data().notifyEmail);
+                    const f = document.getElementById('doc-notify-email'); if (f) f.value = s.data().notifyEmail;
+                }
+            }).catch(() => {});
+            if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
+            resultsUnsub = onSnapshot(query(collection(fbDb, 'results'), where('doctorUid', '==', user.uid)), (snap) => {
+                examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
+                examRecords.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+                renderExcelTable();
+                renderStatsTab();
+                window.__resultsReady = true;
+                if (typeof autoSendTick === 'function') autoSendTick();
+            }, (err) => console.warn('تعذر الاشتراك في النتائج', err));
+            if (subsUnsub) { subsUnsub(); subsUnsub = null; }
+            subsUnsub = onSnapshot(query(collection(fbDb, 'submissions'), where('doctorUid', '==', user.uid)), (snap) => {
+                window.__submissions = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+                window.__subsReady = true;
+                if (typeof processPendingSubmissions === 'function') processPendingSubmissions().then(() => { if (typeof autoSendTick === 'function') autoSendTick(); });
+            }, (err) => console.warn('تعذر الاشتراك في التسليمات', err));
+        }
+
+        function resetToVisitor() {
+            isDoctorLoggedIn = false;
+            isAdminLoggedIn = false;
+            window.doctorEmail = '';
+            window.__myUid = null;
+            window.__myDoctorName = '';
+            window.__myProfile = null;
+            window.__signedInNoProfileUid = null;
+            if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
+            if (subsUnsub) { subsUnsub(); subsUnsub = null; }
+            window.__subsReady = false; window.__submissions = []; window.__keysReady = false;
+            examRecords = [];
+            window.__resultsReady = false;
+            renderExcelTable();
+            wipeDoctorEditor();
+            updateDoctorAuthUI();
+            updateFrozenBanner();
+            switchTab('student');
+            loadApprovedDoctors();
+        }
 
         // واجهات يستخدمها الكود الرئيسي
         window.doctorSignIn = (email, pass) => signInWithEmailAndPassword(fbAuth, email, pass);
@@ -3148,20 +3814,54 @@
         // حفظ الامتحان: الإجابات ونموذج الإجابة والمرجع في مستند خاص بالدكتور، والمستند العام بدون إجابات
         window.fbSaveExam = async (exam) => {
             if (!window.__keysReady) throw new Error('KEYS_NOT_READY');
+            const uid = window.__myUid;
+            exam.doctorUid = uid;
+            exam.doctorName = window.__myDoctorName || '';
             const { pub, keysDoc, reveal } = splitExamForStorage(exam);
+            pub.doctorUid = uid; pub.doctorName = window.__myDoctorName || '';
+            delete pub.subsCount; delete pub.lastSubId;
+            keysDoc.doctorUid = uid;
+            if (reveal) reveal.doctorUid = uid;
+            const eref = doc(fbDb, 'exams', exam.id);
+            const existing = await getDoc(eref);
+            if (!existing.exists()) {
+                let newCount = 0;
+                await runTransaction(fbDb, async (tx) => {
+                    const dref = doc(fbDb, 'doctors', uid);
+                    const ds = await tx.get(dref);
+                    const dd = ds.data() || {};
+                    if (dd.frozen) { const e = new Error('FROZEN'); e.userMessage = 'حسابك مجمّد: مينفعش تنشئ امتحانات. تواصل مع الأدمن.'; throw e; }
+                    const cur = dd.examsCreated || 0;
+                    if (typeof dd.maxExams === 'number' && cur + 1 > dd.maxExams) { const e = new Error('LIMIT'); e.userMessage = 'وصلت للحد الأقصى من الامتحانات (' + dd.maxExams + '). تواصل مع الأدمن لزيادته.'; throw e; }
+                    newCount = cur + 1;
+                    tx.update(dref, { examsCreated: newCount });
+                    tx.set(doc(fbDb, 'examLog', exam.id), { doctorUid: uid, createdAtMs: Date.now() });
+                    tx.set(eref, pub);
+                    if (!exam._noKeys) {
+                        tx.set(doc(fbDb, 'examKeys', exam.id), keysDoc);
+                        if (reveal) tx.set(doc(fbDb, 'examReveal', exam.id), reveal);
+                    }
+                });
+                if (window.__myProfile) { window.__myProfile.examsCreated = newCount; }
+                return;
+            }
             if (!exam._noKeys) {
                 await setDoc(doc(fbDb, 'examKeys', exam.id), keysDoc);
                 if (reveal) await setDoc(doc(fbDb, 'examReveal', exam.id), reveal);
                 else { try { await deleteDoc(doc(fbDb, 'examReveal', exam.id)); } catch (e) {} }
             }
-            await setDoc(doc(fbDb, 'exams', exam.id), pub);
+            const upd = Object.assign({}, pub, { accessCode: deleteField() });
+            if (!('requiresCode' in pub)) upd.requiresCode = deleteField();
+            if (!('windowStartMs' in pub)) upd.windowStartMs = deleteField();
+            if (!('windowEndMs' in pub)) upd.windowEndMs = deleteField();
+            await setDoc(eref, upd, { merge: true });
         };
         // يدمج مفاتيح الإجابة في الامتحانات عند الدكتور، وينقل أي إجابات ما زالت في المستند العام (ترحيل تلقائي لمرة واحدة)
         async function doctorSyncKeys() {
             window.__keysReady = false;
             try {
                 await examsLoadedPromise;
-                const snap = await getDocs(collection(fbDb, 'examKeys'));
+                const snap = await getDocs(query(collection(fbDb, 'examKeys'), where('doctorUid', '==', window.__myUid)));
                 const kmap = {};
                 snap.forEach(d => { kmap[d.id] = d.data(); });
                 const toMigrate = window.__remoteWithAnswers || new Set();
@@ -3169,6 +3869,10 @@
                     if (toMigrate.has(ex.id)) { ex._noKeys = false; continue; }
                     const k = kmap[ex.id];
                     if (k) {
+                        const pubCode = String(ex.accessCode || '').trim();
+                        if (typeof k.accessCode === 'string') ex.accessCode = k.accessCode;
+                        else if (pubCode) toMigrate.add(ex.id);
+                        if ((ex.startTime && !ex.windowStartMs) || (ex.endTime && !ex.windowEndMs)) toMigrate.add(ex.id);
                         if (typeof k.bookContent === 'string') ex.bookContent = k.bookContent;
                         (ex.questions || []).forEach(q => {
                             const a = k.answers && k.answers[q.id];
@@ -3186,7 +3890,7 @@
                     if (!ex.showScoreToStudent || ex._noKeys || toMigrate.has(ex.id)) continue;
                     try {
                         const rs = await getDoc(doc(fbDb, 'examReveal', ex.id));
-                        if (!rs.exists()) { const sp = splitExamForStorage(ex); if (sp.reveal) await setDoc(doc(fbDb, 'examReveal', ex.id), sp.reveal); }
+                        if (!rs.exists()) { const sp = splitExamForStorage(ex); if (sp.reveal) { sp.reveal.doctorUid = window.__myUid; await setDoc(doc(fbDb, 'examReveal', ex.id), sp.reveal); } }
                     } catch (e) { console.warn('reveal heal failed', ex.id, e); }
                 }
                 let migrated = 0;
@@ -3208,14 +3912,40 @@
         // الطالب: جلسة مجهولة لعرض درجته فوراً بعد التسليم (تحتاج تفعيل Anonymous في Authentication)
         window.fbEnsureAnon = async () => { try { if (fbAuth.currentUser) return fbAuth.currentUser.uid; const c = await signInAnonymously(fbAuth); return c.user.uid; } catch (e) { return null; } };
         window.fbCurrentAnonUid = () => (fbAuth.currentUser && fbAuth.currentUser.isAnonymous) ? fbAuth.currentUser.uid : null;
-        window.fbAddSubmission = (subId, data) => setDoc(doc(fbDb, 'submissions', subId), data);
+        window.fbAddSubmission = (subId, data) => runTransaction(fbDb, async (tx) => {
+            const eref = doc(fbDb, 'exams', data.examId);
+            const es = await tx.get(eref);
+            if (!es.exists()) throw new Error('NO_EXAM');
+            // المحاولة تتسجل في نفس العملية مع التسليم (رقم جامعي = محاولة واحدة)
+            const aref = doc(fbDb, 'attempts', subId);
+            const at = await tx.get(aref);
+            if (at.exists()) { const e = new Error('TAKEN'); e.code = 'app/already-submitted'; throw e; }
+            const cnt = es.data().subsCount || 0;
+            let mx;
+            if (es.data().doctorUid) { try { const ds = await tx.get(doc(fbDb, 'publicDoctors', es.data().doctorUid)); mx = ds.exists() ? ds.data().maxSubsPerExam : undefined; } catch (e) {} }
+            if (typeof mx === 'number' && cnt + 1 > mx) { const e = new Error('FULL'); e.code = 'app/exam-full'; throw e; }
+            tx.set(doc(fbDb, 'submissions', subId), data);
+            tx.set(aref, { examId: data.examId, studentId: data.id, createdAtMs: Date.now() });
+            tx.update(eref, { subsCount: cnt + 1, lastSubId: subId });
+        });
         window.fbMakeTicket = (examId, subId, uid) => setDoc(doc(fbDb, 'tickets', examId + '_' + uid), { examId: examId, subId: subId, createdAtMs: Date.now() });
         window.fbGetReveal = async (examId) => { const s = await getDoc(doc(fbDb, 'examReveal', examId)); return s.exists() ? s.data() : null; };
+        window.fbResetExamSubs = async (examId) => {
+            const c = (await getCountFromServer(query(collection(fbDb, 'submissions'), where('doctorUid', '==', window.__myUid), where('examId', '==', examId)))).data().count;
+            const es = await getDoc(doc(fbDb, 'exams', examId));
+            if (es.exists() && (es.data().subsCount || 0) > c) await updateDoc(doc(fbDb, 'exams', examId), { subsCount: c });
+        };
         window.fbDeleteSubmission = (subId) => deleteDoc(doc(fbDb, 'submissions', subId));
         window.fbCommitResult = (subId, rec) => runTransaction(fbDb, async (tx) => {
             const rref = doc(fbDb, 'results', subId);
             const r = await tx.get(rref);
-            if (!r.exists()) tx.set(rref, rec);
+            const lref = doc(fbDb, 'resultLog', subId);
+            const lg = await tx.get(lref);
+            rec.doctorUid = rec.doctorUid || window.__myUid;
+            if (!r.exists()) {
+                tx.set(rref, rec);
+                if (!lg.exists()) tx.set(lref, { doctorUid: rec.doctorUid, createdAtMs: Date.now() });
+            }
             tx.update(doc(fbDb, 'submissions', subId), { processedAtMs: Date.now() });
         });
         window.fbDeleteExam = (examId) => deleteDoc(doc(fbDb, 'exams', examId));
@@ -3223,8 +3953,7 @@
         window.fbUpdateResult = (fid, patch) => updateDoc(doc(fbDb, 'results', fid), patch);
         window.fbDeleteResult = (fid) => deleteDoc(doc(fbDb, 'results', fid));
         window.fbGetAttempt = async (attemptId) => { const s = await getDoc(doc(fbDb, 'attempts', attemptId)); return s.exists(); };
-        window.fbSetAttempt = (attemptId, data) => setDoc(doc(fbDb, 'attempts', attemptId), data);
-        window.fbSaveSettings = (data) => setDoc(doc(fbDb, 'settings', 'doctor'), data, { merge: true });
+        window.fbSaveSettings = (data) => setDoc(doc(fbDb, 'settings', 'doc_' + window.__myUid), data, { merge: true });
         // علامة "تم الإرسال" لكل امتحان: مستند settings/autosend_<examId>، يُحجز داخل transaction فلا يتكرر الإرسال من تابين أو إعادة فتح
         window.fbClaimAutoSend = (examId, sendAtMs) => runTransaction(fbDb, async (tx) => {
             const ref = doc(fbDb, 'settings', 'autosend_' + examId);
@@ -3234,12 +3963,215 @@
                 const stale = d.status === 'sending' && (Date.now() - (d.claimedAtMs || 0)) > 10 * 60000;
                 if (!stale) return 'already';
             }
-            tx.set(ref, { examId: examId, status: 'sending', claimedAtMs: Date.now(), sendAtMs: sendAtMs });
+            tx.set(ref, { examId: examId, status: 'sending', claimedAtMs: Date.now(), sendAtMs: sendAtMs, doctorUid: window.__myUid });
             return 'claimed';
         });
-        window.fbMarkAutoSent = (examId, count) => setDoc(doc(fbDb, 'settings', 'autosend_' + examId), { examId: examId, status: 'sent', sentAtMs: Date.now(), count: count }, { merge: true });
+        window.fbMarkAutoSent = (examId, count) => setDoc(doc(fbDb, 'settings', 'autosend_' + examId), { examId: examId, status: 'sent', sentAtMs: Date.now(), count: count, doctorUid: window.__myUid }, { merge: true });
         window.fbReleaseAutoSend = (examId) => deleteDoc(doc(fbDb, 'settings', 'autosend_' + examId));
         window.fbDeleteAttempt = (attemptId) => deleteDoc(doc(fbDb, 'attempts', attemptId));
+
+        // ===== v27: حسابات الدكاترة + لوحة الأدمن + السجلات =====
+        const _chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+        async function _batchDelete(refs) {
+            for (const part of _chunk(refs, 400)) {
+                const b = writeBatch(fbDb);
+                part.forEach(r => b.delete(r));
+                await b.commit();
+            }
+        }
+
+        window.fbResolveLoginEmail = async (username) => {
+            const s = await getDoc(doc(fbDb, 'usernames', username));
+            return s.exists() ? (s.data().email || null) : null;
+        };
+        window.fbSendReset = (email) => sendPasswordResetEmail(fbAuth, email);
+
+        window.fbCreateDoctorRequest = async ({ name, email, username, password, existingUid }) => {
+            if (existingUid && fbAuth.currentUser && fbAuth.currentUser.uid === existingUid) {
+                const uname = (fbAuth.currentUser.email || '').replace(/@doctor\.local$/i, '') || username;
+                await setDoc(doc(fbDb, 'doctors', existingUid), { name, username: uname, status: 'pending', createdAtMs: Date.now() });
+                await signOut(fbAuth);
+                return;
+            }
+            const taken = await getDoc(doc(fbDb, 'usernames', username));
+            if (taken.exists()) { const e = new Error('username taken'); e.code = 'app/username-taken'; throw e; }
+            const authEmail = email || (username + '@doctor.local');
+            const secondary = initializeApp(firebaseConfig, 'doctorSignup' + Date.now());
+            try {
+                const secAuth = getAuth(secondary);
+                const cred = await createUserWithEmailAndPassword(secAuth, authEmail, password);
+                const sdb = getFirestore(secondary);
+                const b = writeBatch(sdb);
+                const profile = { name, username, status: 'pending', createdAtMs: Date.now() };
+                if (email) profile.email = email;
+                b.set(doc(sdb, 'doctors', cred.user.uid), profile);
+                b.set(doc(sdb, 'usernames', username), { email: authEmail, uid: cred.user.uid });
+                await b.commit();
+                await signOut(secAuth);
+            } finally {
+                try { await deleteApp(secondary); } catch (e) {}
+            }
+        };
+
+        window.fbListApprovedDoctors = async () => {
+            await window.fbEnsureAnon();
+            const snap = await getDocs(collection(fbDb, 'publicDoctors'));
+            return snap.docs.map(d => ({ uid: d.id, name: d.data().name || '' }))
+                .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'));
+        };
+
+        window.fbApproveDoctor = async (uid) => {
+            const s = await getDoc(doc(fbDb, 'doctors', uid));
+            const b = writeBatch(fbDb);
+            b.update(doc(fbDb, 'doctors', uid), { status: 'approved' });
+            const pd = { name: (s.exists() && s.data().name) || '' };
+            if (s.exists() && typeof s.data().maxSubsPerExam === 'number') pd.maxSubsPerExam = s.data().maxSubsPerExam;
+            b.set(doc(fbDb, 'publicDoctors', uid), pd);
+            await b.commit();
+        };
+        window.fbRejectDoctor = async (uid) => {
+            const s = await getDoc(doc(fbDb, 'doctors', uid));
+            const uname = s.exists() ? s.data().username : null;
+            await deleteDoc(doc(fbDb, 'doctors', uid));
+            if (uname) { try { await deleteDoc(doc(fbDb, 'usernames', uname)); } catch (e) {} }
+        };
+        window.fbSetDoctorFrozen = (uid, frozen) => updateDoc(doc(fbDb, 'doctors', uid), { frozen: !!frozen });
+        window.fbSetDoctorLimits = async (uid, maxExams, maxSubs) => {
+            const b = writeBatch(fbDb);
+            b.update(doc(fbDb, 'doctors', uid), {
+                maxExams: maxExams === null ? deleteField() : maxExams,
+                maxSubsPerExam: maxSubs === null ? deleteField() : maxSubs
+            });
+            const s = await getDoc(doc(fbDb, 'doctors', uid));
+            const nm = (s.exists() && s.data().name) || '';
+            const pd = { name: nm };
+            if (typeof maxSubs === 'number') pd.maxSubsPerExam = maxSubs;
+            if (s.exists() && s.data().status === 'approved') b.set(doc(fbDb, 'publicDoctors', uid), pd);
+            await b.commit();
+        };
+
+        window.fbAdminListData = async () => {
+            const docsSnap = await getDocs(collection(fbDb, 'doctors'));
+            const doctors = docsSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
+            // مزامنة قائمة الأسماء العامة للطلاب (اسم فقط، بدون إيميل): تنضبط تلقائياً كل ما الأدمن يفتح اللوحة
+            try {
+                const pub = await getDocs(collection(fbDb, 'publicDoctors'));
+                const havefull = new Map(pub.docs.map(d => [d.id, d.data()]));
+                const approved = doctors.filter(d => d.status === 'approved');
+                const bb = writeBatch(fbDb); let nb = 0;
+                approved.forEach(d => {
+                    const want = { name: d.name || '' };
+                    if (typeof d.maxSubsPerExam === 'number') want.maxSubsPerExam = d.maxSubsPerExam;
+                    const cur = havefull.get(d.uid);
+                    if (!cur || cur.name !== want.name || cur.maxSubsPerExam !== want.maxSubsPerExam) { bb.set(doc(fbDb, 'publicDoctors', d.uid), want); nb++; }
+                });
+                pub.docs.forEach(d => { if (!approved.some(x => x.uid === d.id)) { bb.delete(d.ref); nb++; } });
+                if (nb) await bb.commit();
+            } catch (e) { console.warn('publicDoctors sync failed', e); }
+            const counts = {};
+            await Promise.all(doctors.filter(d => d.status === 'approved').map(async d => {
+                const [e, r] = await Promise.all([
+                    getCountFromServer(query(collection(fbDb, 'examLog'), where('doctorUid', '==', d.uid))),
+                    getCountFromServer(query(collection(fbDb, 'resultLog'), where('doctorUid', '==', d.uid)))
+                ]);
+                counts[d.uid] = { exams: e.data().count, results: r.data().count };
+            }));
+            const [te, tr] = await Promise.all([getCountFromServer(collection(fbDb, 'examLog')), getCountFromServer(collection(fbDb, 'resultLog'))]);
+            const [ex, rs, sb] = await Promise.all([getDocs(collection(fbDb, 'exams')), getDocs(collection(fbDb, 'results')), getDocs(collection(fbDb, 'submissions'))]);
+            const legacyCount = [ex, rs, sb].reduce((n, s) => n + s.docs.filter(d => !d.data().doctorUid).length, 0);
+            return { doctors, counts, totalExams: te.data().count, totalResults: tr.data().count, legacyCount };
+        };
+
+        window.fbCountDoctorData = async (uid) => {
+            const c = async (col) => (await getCountFromServer(query(collection(fbDb, col), where('doctorUid', '==', uid)))).data().count;
+            const [exams, results, submissions] = await Promise.all([c('exams'), c('results'), c('submissions')]);
+            return { exams, results, submissions };
+        };
+
+        // حذف نهائي لدكتور وكل بياناته (أجزاء ≤ 400 عملية، وآمن لو اتكرر)
+        window.fbDeleteDoctorCascade = async (uid, username) => {
+            const exSnap = await getDocs(query(collection(fbDb, 'exams'), where('doctorUid', '==', uid)));
+            const examIds = exSnap.docs.map(d => d.id);
+            const refs = [];
+            examIds.forEach(id => {
+                refs.push(doc(fbDb, 'examKeys', id), doc(fbDb, 'examReveal', id), doc(fbDb, 'settings', 'autosend_' + id));
+            });
+            for (const part of _chunk(examIds, 30)) {
+                const at = await getDocs(query(collection(fbDb, 'attempts'), where('examId', 'in', part)));
+                at.docs.forEach(d => refs.push(d.ref));
+                const tk = await getDocs(query(collection(fbDb, 'tickets'), where('examId', 'in', part)));
+                tk.docs.forEach(d => refs.push(d.ref));
+            }
+            const sb = await getDocs(query(collection(fbDb, 'submissions'), where('doctorUid', '==', uid)));
+            sb.docs.forEach(d => refs.push(d.ref));
+            const rs = await getDocs(query(collection(fbDb, 'results'), where('doctorUid', '==', uid)));
+            rs.docs.forEach(d => refs.push(d.ref));
+            refs.push(doc(fbDb, 'settings', 'doc_' + uid));
+            refs.push(doc(fbDb, 'publicDoctors', uid));
+            await _batchDelete(refs);
+            await _batchDelete(exSnap.docs.map(d => d.ref));
+            if (username) { try { await deleteDoc(doc(fbDb, 'usernames', username)); } catch (e) {} }
+            await deleteDoc(doc(fbDb, 'doctors', uid));
+        };
+
+        // ترحيل البيانات القديمة: يضيف doctorUid فقط ويزرع السجلات. لا يمسح ولا يغيّر أي بيانات موجودة
+        window.fbMigrateLegacyData = async (targetUid, targetName) => {
+            const backup = {};
+            let tagged = 0;
+            const exSnap = await getDocs(collection(fbDb, 'exams'));
+            const rsSnap = await getDocs(collection(fbDb, 'results'));
+            const sbSnap = await getDocs(collection(fbDb, 'submissions'));
+            const stSnap = await getDocs(collection(fbDb, 'settings'));
+            backup.exams = exSnap.docs.map(d => ({ _id: d.id, ...d.data() }));
+            backup.results = rsSnap.docs.map(d => ({ _id: d.id, ...d.data() }));
+            backup.submissions = sbSnap.docs.map(d => ({ _id: d.id, ...d.data() }));
+            backup.settings = stSnap.docs.map(d => ({ _id: d.id, ...d.data() }));
+            const subsPerExam = {};
+            sbSnap.docs.forEach(d => { const e = d.data().examId; if (e) subsPerExam[e] = (subsPerExam[e] || 0) + 1; });
+            let legacyExams = 0;
+            for (const d of exSnap.docs) {
+                if (d.data().doctorUid) continue;
+                await updateDoc(doc(fbDb, 'exams', d.id), { doctorUid: targetUid, doctorName: targetName, subsCount: subsPerExam[d.id] || 0 });
+                for (const col of ['examKeys', 'examReveal']) { try { await updateDoc(doc(fbDb, col, d.id), { doctorUid: targetUid }); } catch (e) {} }
+                try { await setDoc(doc(fbDb, 'examLog', d.id), { doctorUid: targetUid, createdAtMs: Number(d.data().updatedAtMs) || Date.now() }); } catch (e) {}
+                legacyExams++; tagged++;
+            }
+            for (const d of rsSnap.docs) {
+                if (d.data().doctorUid) continue;
+                await updateDoc(doc(fbDb, 'results', d.id), { doctorUid: targetUid });
+                try { await setDoc(doc(fbDb, 'resultLog', d.id), { doctorUid: targetUid, createdAtMs: Number(d.data().createdAtMs) || Date.now() }); } catch (e) {}
+                tagged++;
+            }
+            for (const d of sbSnap.docs) {
+                if (d.data().doctorUid) continue;
+                await updateDoc(doc(fbDb, 'submissions', d.id), { doctorUid: targetUid });
+                tagged++;
+            }
+            if (legacyExams) {
+                const t = await getDoc(doc(fbDb, 'doctors', targetUid));
+                const cur = (t.exists() && t.data().examsCreated) || 0;
+                await updateDoc(doc(fbDb, 'doctors', targetUid), { examsCreated: cur + legacyExams });
+            }
+            for (const d of stSnap.docs) {
+                const data = d.data();
+                if (d.id === 'doctor') {
+                    if (data.notifyEmail) await setDoc(doc(fbDb, 'settings', 'doc_' + targetUid), { notifyEmail: data.notifyEmail }, { merge: true });
+                    continue;
+                }
+                if (d.id.startsWith('autosend_') && !data.doctorUid) { await updateDoc(doc(fbDb, 'settings', d.id), { doctorUid: targetUid }); tagged++; }
+            }
+            return { backup, tagged };
+        };
+
+        // الطالب: هل الامتحان وصل لحد التسليمات؟
+        window.fbExamFull = async (exam) => {
+            const es = await getDoc(doc(fbDb, 'exams', exam.id));
+            if (!es.exists() || !es.data().doctorUid) return false;
+            const ds = await getDoc(doc(fbDb, 'publicDoctors', es.data().doctorUid));
+            const mx = ds.exists() ? ds.data().maxSubsPerExam : undefined;
+            return typeof mx === 'number' && (es.data().subsCount || 0) >= mx;
+        };
+
     </script>
 </body>
 </html>
