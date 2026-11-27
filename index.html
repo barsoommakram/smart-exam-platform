@@ -897,6 +897,30 @@
                 </div>
             </div>
         </div>
+        
+        <div class="max-w-xl mx-auto space-y-4 mt-6" id="acct-cards">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <div class="bg-indigo-100 text-indigo-700 p-2 rounded-xl"><i data-lucide="user-cog" class="w-5 h-5"></i></div>
+                    <div><h3 class="font-extrabold text-slate-900 text-base">بيانات حسابي</h3><p class="text-xs text-slate-500">عدّل اسمك أو اسم المستخدم. لازم تكتب كلمة المرور تأكيد.</p></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">الاسم</label><input type="text" id="acct-name" maxlength="100" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">اسم المستخدم (إنجليزي صغير وأرقام و _)</label><input type="text" id="acct-username" dir="ltr" maxlength="30" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">كلمة المرور (للتأكيد)</label><input type="password" id="acct-pass1" dir="ltr" autocomplete="current-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500"></div>
+                <p id="acct-msg1" class="text-xs font-bold text-rose-600 hidden"></p>
+                <button type="button" id="acct-save" onclick="saveMyProfile()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">حفظ التعديل</button>
+            </div>
+            <div id="acct-delete-card" class="bg-white rounded-2xl border-2 border-rose-300 p-6 shadow-sm space-y-3">
+                <div class="flex items-center gap-2.5 pb-3 border-b border-rose-100">
+                    <div class="bg-rose-100 text-rose-700 p-2 rounded-xl"><i data-lucide="user-x" class="w-5 h-5"></i></div>
+                    <div><h3 class="font-extrabold text-rose-700 text-base">حذف حسابي</h3><p class="text-xs text-slate-500">حذف نهائي، مفيش رجوع.</p></div>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">هيتمسح حسابك وكل امتحاناتك ونتايجك وبيانات طلابك ومفاتيحك من الموقع نهائيًا، وتقدر بعدها تسجّل حساب جديد لو حبيت (بيحتاج موافقة الأدمن). اكتب كلمة المرور عشان تأكد.</p>
+                <div><input type="password" id="acct-pass2" dir="ltr" placeholder="كلمة المرور" autocomplete="current-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-rose-500"></div>
+                <p id="acct-msg2" class="text-xs font-bold text-rose-600 hidden"></p>
+                <button type="button" id="acct-del" onclick="deleteMyAccount()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition">حذف حسابي نهائيًا</button>
+            </div>
+        </div>
         </section>
 
         <section id="view-reports" class="hidden space-y-6">
@@ -1171,7 +1195,7 @@
             if (tabName === 'doctor') populateDoctorWorkspace();
             if (tabName === 'admin') loadAdminPanel();
             if (tabName === 'stats') renderStatsTab();
-            if (tabName === 'email') { document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || ''; updateNotifyEmailStatus(); setTimeout(() => { try { document.getElementById('doc-notify-email').focus(); } catch (e) {} }, 50); }
+            if (tabName === 'email') { try { fillAccountCard(); } catch (e) {} document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || ''; updateNotifyEmailStatus(); setTimeout(() => { try { document.getElementById('doc-notify-email').focus(); } catch (e) {} }, 50); }
             if (tabName === 'reports') {
                 populateReportFilter();
                 renderExcelTable();
@@ -3755,9 +3779,9 @@
             try {
                 const c = await window.fbScanOrphans();
                 window.__orphanCounts = c;
-                const total = c.attempts + c.submissions + c.tickets + c.autosend + c.resDeadDoctor + c.resNoOwner;
+                const total = c.attempts + c.submissions + c.tickets + c.autosend + c.resDeadDoctor + c.resNoOwner + c.pubDead + c.unameDead;
                 box.innerHTML = '';
-                const lines = [`محاولات طلاب بلا امتحان: ${c.attempts}`, `تسليمات بلا امتحان: ${c.submissions}`, `تذاكر دخول بلا امتحان: ${c.tickets}`, `علامات إرسال تلقائي بلا امتحان: ${c.autosend}`, `نتايج دكتور اتحذف حسابه: ${c.resDeadDoctor}`, `نتايج قديمة من غير دكتور (مش ظاهرة لحد، وممكن تتربط بدكتور بدل ما تتمسح): ${c.resNoOwner}`, `امتحانات محذوفة هنحاول نمسح مفاتيحها (الأدمن مايقدرش يقرا المفاتيح، فمش بنعرف لو لسه موجودة؛ العدد ده بيفضل ظاهر): ${c.keys}`];
+                const lines = [`محاولات طلاب بلا امتحان: ${c.attempts}`, `تسليمات بلا امتحان: ${c.submissions}`, `تذاكر دخول بلا امتحان: ${c.tickets}`, `علامات إرسال تلقائي بلا امتحان: ${c.autosend}`, `نتايج دكتور اتحذف حسابه: ${c.resDeadDoctor}`, `أسماء مستخدمين (usernames) لدكاترة محذوفين: ${c.unameReadable ? c.unameDead : 'مش قادر يقراها، لازم تنشر الرولز الجديدة الأول'}`, `بروفايلات دكاترة عامة (publicDoctors) لدكاترة محذوفين: ${c.pubDead}`, `نتايج قديمة من غير دكتور (مش ظاهرة لحد، وممكن تتربط بدكتور بدل ما تتمسح): ${c.resNoOwner}`, `امتحانات محذوفة هنحاول نمسح مفاتيحها (الأدمن مايقدرش يقرا المفاتيح، فمش بنعرف لو لسه موجودة؛ العدد ده بيفضل ظاهر): ${c.keys}`];
                 lines.forEach(t => { const p = document.createElement('div'); p.textContent = t; box.appendChild(p); });
                 box.classList.remove('hidden');
                 if (total + c.keys > 0) cl.classList.remove('hidden');
@@ -3782,6 +3806,77 @@
                 cl.classList.add('hidden'); document.getElementById('adm-orphan-result').classList.add('hidden');
             } catch (e) { console.warn('orphan clean failed', e); showToast('المسح ما كملش — افحص تاني وحاول', 'danger'); }
             finally { orphanBusy = false; cl.disabled = false; cl.textContent = 'امسح البيانات اليتيمة'; }
+        }
+
+
+        // ---------- v28.32: حسابي (تعديل + حذف) ----------
+        let acctBusy = false;
+        function fillAccountCard() {
+            const p = window.__myProfile || {};
+            const n = document.getElementById('acct-name'), u = document.getElementById('acct-username');
+            if (n) n.value = p.name || ''; if (u) u.value = p.username || '';
+            ['acct-pass1', 'acct-pass2'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+            ['acct-msg1', 'acct-msg2'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.add('hidden'); });
+            const dc = document.getElementById('acct-delete-card'); if (dc) dc.classList.toggle('hidden', !!isAdminLoggedIn);
+        }
+        function acctMsg(id, t) { const e = document.getElementById(id); if (!e) return; e.textContent = t; e.classList.toggle('hidden', !t); }
+        function acctAuthError(e) {
+            const c = (e && e.code) || '';
+            if (c === 'auth/wrong-password' || c === 'auth/invalid-credential' || c === 'auth/invalid-login-credentials') return 'كلمة المرور غلط.';
+            if (c === 'auth/too-many-requests') return 'محاولات كتير غلط، استنى شوية وجرّب تاني.';
+            if (c === 'auth/network-request-failed') return 'الشبكة ضعيفة، جرّب تاني.';
+            return '';
+        }
+        async function saveMyProfile() {
+            if (acctBusy) return;
+            const p = window.__myProfile || {};
+            const name = document.getElementById('acct-name').value.trim();
+            const uname = document.getElementById('acct-username').value.trim().toLowerCase();
+            const pass = document.getElementById('acct-pass1').value;
+            acctMsg('acct-msg1', '');
+            if (!name || name.length > 100) return acctMsg('acct-msg1', 'اكتب الاسم (لحد 100 حرف).');
+            if (!/^[a-z0-9_]{3,30}$/.test(uname)) return acctMsg('acct-msg1', 'اسم المستخدم: حروف إنجليزية صغيرة وأرقام و _ بس، من 3 لـ 30.');
+            if (name === p.name && uname === p.username) return acctMsg('acct-msg1', 'مفيش تعديل تحفظه.');
+            if (!pass) return acctMsg('acct-msg1', 'اكتب كلمة المرور الأول.');
+            acctBusy = true;
+            const btn = document.getElementById('acct-save'); btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+            try {
+                await window.fbReauth(pass);
+                await window.fbUpdateMyProfile(name, uname);
+                showToast('اتحفظت بياناتك', 'success');
+                updateDoctorAuthUI(); fillAccountCard();
+            } catch (e) {
+                console.warn('profile update failed', e);
+                const m = acctAuthError(e);
+                if (m) acctMsg('acct-msg1', m);
+                else if (e && e.code === 'app/username-taken') acctMsg('acct-msg1', 'اسم المستخدم ده محجوز، اختار اسم تاني.');
+                else acctMsg('acct-msg1', 'ما اتحفظش، جرّب تاني.');
+            } finally { acctBusy = false; btn.disabled = false; btn.textContent = 'حفظ التعديل'; }
+        }
+        async function deleteMyAccount() {
+            if (acctBusy || isAdminLoggedIn) return;
+            const pass = document.getElementById('acct-pass2').value;
+            acctMsg('acct-msg2', '');
+            if (!pass) return acctMsg('acct-msg2', 'اكتب كلمة المرور الأول.');
+            if (window.__myProfile && window.__myProfile.frozen) return acctMsg('acct-msg2', 'حسابك مجمّد. كلّم الأدمن الأول.');
+            const ok1 = await showConfirmModal({ title: 'حذف حسابي', message: 'هيتمسح كل امتحاناتك ونتايجك وبيانات طلابك نهائيًا من الموقع، ومفيش رجوع. متأكد؟', confirmLabel: 'أيوه، كمّل', cancelLabel: 'لأ' });
+            if (!ok1) return;
+            const ok2 = await showConfirmModal({ title: 'تأكيد أخير', message: 'آخر تأكيد: حسابك وكل بياناتك هيتمسحوا دلوقتي. اتأكد إنك نزّلت أي نتايج محتاجها.', confirmLabel: 'احذف حسابي', cancelLabel: 'إلغاء' });
+            if (!ok2) return;
+            acctBusy = true;
+            const btn = document.getElementById('acct-del'); btn.disabled = true; btn.textContent = 'جاري الحذف...';
+            try {
+                await window.fbReauth(pass);
+                const r = await window.fbDeleteMyAccount();
+                showToast(r.authDeleted ? 'اتحذف حسابك وكل بياناتك.' : 'اتمسحت بياناتك. حساب الدخول نفسه لسه موجود، كلّم الأدمن يمسحه.', r.authDeleted ? 'success' : 'warning');
+            } catch (e) {
+                console.warn('self delete failed', e);
+                const m = acctAuthError(e);
+                if (m) acctMsg('acct-msg2', m);
+                else if (e && e.code === 'app/frozen') acctMsg('acct-msg2', 'حسابك مجمّد. كلّم الأدمن الأول.');
+                else if (e && e.code === 'app/partial') acctMsg('acct-msg2', 'اتمسح جزء من البيانات وفضل جزء. اضغط حذف تاني يكمل. (حسابك لسه موجود)');
+                else acctMsg('acct-msg2', 'ما اتحذفش، جرّب تاني.');
+            } finally { acctBusy = false; btn.disabled = false; btn.textContent = 'حذف حسابي نهائيًا'; }
         }
 
         // ---------- ترحيل البيانات القديمة ----------
@@ -3889,7 +3984,7 @@
         // ربط Firebase: Firestore للامتحانات والنتائج + Firebase Auth لدخول الدكتور
         // =========================================================================
         import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
         import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -4490,7 +4585,10 @@
             const allRes = (await getDocs(collection(db, 'results'))).docs;
             const resDeadDoctor = allRes.filter(d => { const u = d.data().doctorUid; return u && !docIds.has(u); });
             const resNoOwner = allRes.filter(d => !d.data().doctorUid);
-            return { resDeadDoctor: resDeadDoctor.map(d => d.ref), resNoOwner: resNoOwner.map(d => d.ref), deadUids: resDeadDoctor.map(d => d.data().doctorUid), attempts: attempts.map(d => d.ref), submissions: submissions.map(d => d.ref), tickets: tickets.map(d => d.ref), autosend: autosend.map(d => d.ref), keyIds, examIdsOf: { attempts: attempts.map(d => d.data().examId), submissions: submissions.map(d => d.data().examId), tickets: tickets.map(d => d.data().examId) } };
+            const pubDead = (await getDocs(collection(db, 'publicDoctors'))).docs.filter(d => !docIds.has(d.id));
+            let unameDead = [], unameReadable = true;
+            try { unameDead = (await getDocs(collection(db, 'usernames'))).docs.filter(d => { const u = d.data().uid; return !u || !docIds.has(u); }); } catch (e) { unameReadable = false; }
+            return { pubDead: pubDead.map(d => d.ref), unameDead: unameDead.map(d => d.ref), unameReadable, resDeadDoctor: resDeadDoctor.map(d => d.ref), resNoOwner: resNoOwner.map(d => d.ref), deadUids: resDeadDoctor.map(d => d.data().doctorUid), attempts: attempts.map(d => d.ref), submissions: submissions.map(d => d.ref), tickets: tickets.map(d => d.ref), autosend: autosend.map(d => d.ref), keyIds, examIdsOf: { attempts: attempts.map(d => d.data().examId), submissions: submissions.map(d => d.data().examId), tickets: tickets.map(d => d.data().examId) } };
         };
         const _orphClean = async (db, scan, includeNoOwner) => {
             let deleted = 0, failed = 0, skipped = 0;
@@ -4517,13 +4615,86 @@
             if (includeNoOwner) {
                 for (const r of scan.resNoOwner) { const s = await getDoc(r); if (s.exists() && !s.data().doctorUid) refs.push(r); else skipped++; }
             }
+            for (const r of scan.pubDead) { if (!(await getDoc(doc(db, 'doctors', r.id))).exists()) refs.push(r); else skipped++; }
+            for (const r of scan.unameDead) { const s = await getDoc(r); const u = s.exists() ? s.data().uid : null; if (s.exists() && (!u || !(await getDoc(doc(db, 'doctors', u))).exists())) refs.push(r); else skipped++; }
             await run(refs);
             return { deleted, failed, skipped };
         };
-        window.fbScanOrphans = async () => { const s = await _orphScan(fbDb); window.__orphanScan = s; return { attempts: s.attempts.length, submissions: s.submissions.length, tickets: s.tickets.length, autosend: s.autosend.length, keys: s.keyIds.length, resDeadDoctor: s.resDeadDoctor.length, resNoOwner: s.resNoOwner.length }; };
+        window.fbScanOrphans = async () => { const s = await _orphScan(fbDb); window.__orphanScan = s; return { pubDead: s.pubDead.length, unameDead: s.unameDead.length, unameReadable: s.unameReadable, attempts: s.attempts.length, submissions: s.submissions.length, tickets: s.tickets.length, autosend: s.autosend.length, keys: s.keyIds.length, resDeadDoctor: s.resDeadDoctor.length, resNoOwner: s.resNoOwner.length }; };
         window.fbCleanOrphans = async (includeNoOwner) => { if (!window.__orphanScan) throw new Error('scan first'); const r = await _orphClean(fbDb, window.__orphanScan, !!includeNoOwner); window.__orphanScan = null; return r; };
 
         // حذف نهائي لدكتور وكل بياناته (أجزاء ≤ 400 عملية، وآمن لو اتكرر)
+
+        // v28.32: حساب الدكتور بنفسه: تعديل الاسم/اليوزر وحذف الحساب (كلهم بعد إعادة كلمة المرور)
+        window.fbReauth = async (pass) => {
+            const u = fbAuth.currentUser;
+            if (!u || !u.email) throw Object.assign(new Error('no user'), { code: 'app/no-user' });
+            await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, pass));
+        };
+        window.fbUpdateMyProfile = async (newName, newUsername) => {
+            const me = window.__myUid, prof = window.__myProfile || {};
+            const nameChanged = newName !== prof.name, unameChanged = newUsername !== prof.username;
+            if (!nameChanged && !unameChanged) return { changed: false };
+            const b = writeBatch(fbDb);
+            const upd = {};
+            if (nameChanged) upd.name = newName;
+            if (unameChanged) {
+                const taken = await getDoc(doc(fbDb, 'usernames', newUsername));
+                if (taken.exists()) throw Object.assign(new Error('taken'), { code: 'app/username-taken' });
+                let mail = fbAuth.currentUser.email || prof.email || '';
+                let oldExists = false;
+                if (prof.username) { const o = await getDoc(doc(fbDb, 'usernames', prof.username)); if (o.exists() && o.data().uid === me) { oldExists = true; if (o.data().email) mail = o.data().email; } }
+                b.set(doc(fbDb, 'usernames', newUsername), { email: mail, uid: me });
+                if (oldExists) b.delete(doc(fbDb, 'usernames', prof.username));
+                upd.username = newUsername;
+            }
+            b.update(doc(fbDb, 'doctors', me), upd);
+            if (nameChanged) { const p = await getDoc(doc(fbDb, 'publicDoctors', me)); if (p.exists()) b.update(doc(fbDb, 'publicDoctors', me), { name: newName }); }
+            await b.commit();
+            if (nameChanged) {
+                try {
+                    const ex = await getDocs(query(collection(fbDb, 'exams'), where('doctorUid', '==', me)));
+                    for (const part of _chunk(ex.docs, 400)) { const bb = writeBatch(fbDb); part.forEach(d => bb.update(d.ref, { doctorName: newName })); await bb.commit(); }
+                } catch (e) { console.warn('exam doctorName update failed', e); }
+            }
+            window.__myProfile = Object.assign({}, prof, upd);
+            if (nameChanged) window.__myDoctorName = newName;
+            return { changed: true, nameChanged, unameChanged };
+        };
+        // حذف حساب الدكتور بنفسه: كل بياناته (الامتحانات آخر حاجة قبل مستند الدكتور) وبعدين حساب الدخول
+        window.fbDeleteMyAccount = async () => {
+            const me = window.__myUid;
+            if (!me || isAdminLoggedIn) throw Object.assign(new Error('admin'), { code: 'app/admin' });
+            const mine = await getDoc(doc(fbDb, 'doctors', me));
+            if (mine.exists() && mine.data().frozen === true) throw Object.assign(new Error('frozen'), { code: 'app/frozen' });
+            const exSnap = await getDocs(query(collection(fbDb, 'exams'), where('doctorUid', '==', me)));
+            const examIds = exSnap.docs.map(d => d.id);
+            const refs = [];
+            for (const part of _chunk(examIds, 30)) {
+                (await getDocs(query(collection(fbDb, 'attempts'), where('examId', 'in', part)))).docs.forEach(d => refs.push(d.ref));
+                (await getDocs(query(collection(fbDb, 'tickets'), where('examId', 'in', part)))).docs.forEach(d => refs.push(d.ref));
+            }
+            (await getDocs(query(collection(fbDb, 'submissions'), where('doctorUid', '==', me)))).docs.forEach(d => refs.push(d.ref));
+            (await getDocs(query(collection(fbDb, 'results'), where('doctorUid', '==', me)))).docs.forEach(d => refs.push(d.ref));
+            (await getDocs(query(collection(fbDb, 'examKeys'), where('doctorUid', '==', me)))).docs.forEach(d => refs.push(d.ref));
+            (await getDocs(query(collection(fbDb, 'examReveal'), where('doctorUid', '==', me)))).docs.forEach(d => refs.push(d.ref));
+            for (const id of examIds) { const a = await getDoc(doc(fbDb, 'settings', 'autosend_' + id)); if (a.exists()) refs.push(a.ref); }
+            const st = await getDoc(doc(fbDb, 'settings', 'doc_' + me)); if (st.exists()) refs.push(st.ref);
+            let failed = await _delMany(refs);
+            if (failed) throw Object.assign(new Error('partial'), { code: 'app/partial', failed });
+            failed += await _delMany(exSnap.docs.map(d => d.ref));
+            if (failed) throw Object.assign(new Error('partial'), { code: 'app/partial', failed });
+            const uname = mine.exists() ? mine.data().username : '';
+            const tail = [doc(fbDb, 'publicDoctors', me)];
+            if (uname) { const u = await getDoc(doc(fbDb, 'usernames', uname)); if (u.exists() && u.data().uid === me) tail.push(u.ref); }
+            else tail.push(null);
+            await _delMany(tail.filter(Boolean));
+            const pub = await getDoc(doc(fbDb, 'publicDoctors', me));
+            if (mine.exists()) await deleteDoc(doc(fbDb, 'doctors', me));
+            window.__selfDeleted = true;
+            try { await deleteUser(fbAuth.currentUser); return { authDeleted: true }; }
+            catch (e) { console.warn('auth delete failed', e); try { await signOut(fbAuth); } catch (e2) {} return { authDeleted: false }; }
+        };
         window.fbDeleteDoctorCascade = async (uid, username) => {
             const exSnap = await getDocs(query(collection(fbDb, 'exams'), where('doctorUid', '==', uid)));
             const examIds = exSnap.docs.map(d => d.id);
