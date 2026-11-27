@@ -3061,6 +3061,22 @@
                 time: now
             }, { publicKey: EMAILJS_CFG.publicKey });
         }
+        // إيميل قبول الطلب للدكتور (مرة واحدة عند لحظة القبول، ما بيرميش خطأ، ومفيش إرسال من غير إيميل حقيقي)
+        window.sendApprovalEmail = async function (to, name) {
+            try {
+                to = String(to || '').trim();
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || /@doctor\.local$/i.test(to)) return false;
+                if (!emailjsReady()) return false;
+                const text = 'أهلاً ' + (name || 'دكتور') + '،\nتمت الموافقة على طلبك للانضمام إلى منصة اسكوتش. تقدر دلوقتي تسجل دخول بالاسم وكلمة السر اللي اخترتهم.\nhttps://barsoommakram.github.io/smart-exam-platform/';
+                const html = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:15px;line-height:1.8"><p>أهلاً ' + String(name || 'دكتور').replace(/[<>&]/g, '') + '،</p><p>تمت الموافقة على طلبك للانضمام إلى <b>منصة اسكوتش</b>. تقدر دلوقتي تسجل دخول بالاسم وكلمة السر اللي اخترتهم.</p><p><a href="https://barsoommakram.github.io/smart-exam-platform/">فتح المنصة</a></p></div>';
+                await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
+                    subject: 'تمت الموافقة على طلبك - منصة اسكوتش',
+                    to_email: to, message: text, message_html: html, name: 'منصة اسكوتش',
+                    time: new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })
+                }, { publicKey: EMAILJS_CFG.publicKey });
+                return true;
+            } catch (e) { console.warn('approval email failed', e); return false; }
+        };
         async function emailExcelToDoctor() {
             const to = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
             if (!to) {
@@ -4182,6 +4198,7 @@
                 if (needUname) b0.set(doc(fbDb, 'usernames', uname), { email: authMail, uid: existingUid });
                 await b0.commit();
                 if (prof0.status === 'approved') { try { await setDoc(doc(fbDb, 'publicDoctors', existingUid), { name }); } catch (e) {} }
+                if (prof0.status === 'approved' && realMail && typeof window.sendApprovalEmail === 'function') { window.sendApprovalEmail(realMail, name); }
                 await signOut(fbAuth);
                 return prof0.status;
             }
@@ -4211,6 +4228,7 @@
                     throw commitErr;
                 }
                 if (profile.status === 'approved') { try { await setDoc(doc(sdb, 'publicDoctors', cred.user.uid), { name }); } catch (e) { console.warn('publicDoctors self entry failed', e); } }
+                if (profile.status === 'approved' && email && typeof window.sendApprovalEmail === 'function') { window.sendApprovalEmail(email, name); }
                 await signOut(secAuth);
                 return profile.status;
             } finally {
@@ -4236,11 +4254,13 @@
         window.fbApproveDoctor = async (uid) => {
             const s = await getDoc(doc(fbDb, 'doctors', uid));
             const b = writeBatch(fbDb);
+            const wasApproved = s.exists() && s.data().status === 'approved';
             b.update(doc(fbDb, 'doctors', uid), { status: 'approved' });
             const pd = { name: (s.exists() && s.data().name) || '' };
             if (s.exists() && typeof s.data().maxSubsPerExam === 'number') pd.maxSubsPerExam = s.data().maxSubsPerExam;
             b.set(doc(fbDb, 'publicDoctors', uid), pd);
             await b.commit();
+            if (!wasApproved && uid !== window.__myUid && s.exists() && s.data().email && typeof window.sendApprovalEmail === 'function') { window.sendApprovalEmail(s.data().email, s.data().name); }
         };
         window.fbRejectDoctor = async (uid) => {
             const s = await getDoc(doc(fbDb, 'doctors', uid));
