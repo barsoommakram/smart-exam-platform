@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المنصة التعليمية الذكية للتقييم الآلي وكشف الغش</title>
+    <title>منصة اسكوتش</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2064%2064%22%3E%3Crect%20width=%2264%22%20height=%2264%22%20rx=%2214%22%20fill=%22%23ecfdf5%22/%3E%3Cpath%20d=%22M32%208C18%2018%2014%2032%2020%2046c6%208%2018%208%2024%200%206-14%202-28-12-38z%22%20fill=%22%2322c55e%22/%3E%3Cpath%20d=%22M32%2012v44M32%2026l-9-6M32%2026l9-6M32%2036l-11-7M32%2036l11-7M32%2046l-8-5M32%2046l8-5%22%20stroke=%22%2314532d%22%20stroke-width=%222.2%22%20stroke-linecap=%22round%22%20fill=%22none%22/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2064%2064%22%3E%3Crect%20width=%2264%22%20height=%2264%22%20rx=%2214%22%20fill=%22%23ecfdf5%22/%3E%3Cpath%20d=%22M32%208C18%2018%2014%2032%2020%2046c6%208%2018%208%2024%200%206-14%202-28-12-38z%22%20fill=%22%2322c55e%22/%3E%3Cpath%20d=%22M32%2012v44M32%2026l-9-6M32%2026l9-6M32%2036l-11-7M32%2036l11-7M32%2046l-8-5M32%2046l8-5%22%20stroke=%22%2314532d%22%20stroke-width=%222.2%22%20stroke-linecap=%22round%22%20fill=%22none%22/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -191,7 +193,7 @@
                     <i data-lucide="shield-check" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-xl font-extrabold text-slate-900 leading-tight">المنصة الذكية للتقييم وكشف الغش</h1>
+                    <h1 class="text-base sm:text-xl font-extrabold text-slate-900 leading-tight">منصة اسكوتش</h1>
                     <p class="text-[11px] sm:text-xs text-slate-500 font-medium">مشروع التحول الرقمي • التقييم المرجعي وضبط نزاهة الاختبارات</p>
                 </div>
             </div>
@@ -927,7 +929,7 @@
 
     <footer class="bg-white border-t border-slate-200 py-4 mt-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-            <p>المنصة التعليمية الذكية للتقييم الآلي وكشف الغش • مشروع التحول الرقمي</p>
+            <p>منصة اسكوتش</p>
             <p>توليد أسئلة تلقائي • مراقبة سلوكية • تصدير شيت Excel متعدد الأوراق</p>
         </div>
     </footer>
@@ -1104,8 +1106,25 @@
             switchTab(tabName);
         }
 
+        // ---- سجل المتصفح: زر الرجوع يرجّع لبوابة الطالب بدل الخروج من الموقع ----
+        let _navFromPop = false;
         function switchTab(tabName) {
+            const finalTab = _switchTabCore(tabName);
+            try {
+                const cur = history.state && history.state.t;
+                if (_navFromPop || cur === undefined || cur === null) history.replaceState({ t: finalTab }, '');
+                else if (cur !== finalTab) history.pushState({ t: finalTab }, '');
+            } catch (e) {}
+        }
+        window.addEventListener('popstate', (ev) => {
+            const t = (ev.state && ev.state.t) || 'student';
+            _navFromPop = true;
+            try { switchTab(t); } finally { _navFromPop = false; }
+        });
+
+        function _switchTabCore(tabName) {
             if (tabName === 'student' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
+            if (tabName === 'doctor-auth' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
             if (tabName === 'doctor' && !isDoctorLoggedIn) tabName = 'doctor-auth';
             if (tabName === 'admin' && !isAdminLoggedIn) tabName = 'doctor-auth';
             if ((tabName === 'reports' || tabName === 'email' || tabName === 'stats') && !isDoctorLoggedIn) tabName = 'doctor-auth';
@@ -1143,6 +1162,7 @@
             }
             if (isDoctorLoggedIn && ['doctor', 'stats', 'email', 'reports'].includes(tabName)) { try { localStorage.setItem('doctor_last_tab_v1', tabName); } catch (e) {} }
             refreshIcons();
+            return tabName;
         }
 
         let pendingTabAfterLogin = null;
@@ -2930,7 +2950,7 @@
             const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
             const exams = [...new Set(list.map(r => r.examTitle).filter(Boolean))];
             const lines = [];
-            lines.push('ملخص نتائج الامتحان - المنصة الذكية للتقييم');
+            lines.push('ملخص نتائج الامتحان - منصة اسكوتش');
             lines.push('الامتحان: ' + (exams.join(' ، ') || '-'));
             lines.push('عدد الطلاب: ' + list.length);
             lines.push('متوسط الدرجات: ' + avg + '%');
@@ -2962,7 +2982,7 @@
             const th = 'style="border:1px solid #94a3b8;background:#1e293b;color:#ffffff;padding:6px 8px;text-align:right;font-size:13px"';
             const td = 'style="border:1px solid #cbd5e1;padding:6px 8px;text-align:right;font-size:13px"';
             const head = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;text-align:right">'
-                + '<h3 style="margin:0 0 6px">ملخص نتائج الامتحان - المنصة الذكية للتقييم</h3>'
+                + '<h3 style="margin:0 0 6px">ملخص نتائج الامتحان - منصة اسكوتش</h3>'
                 + '<p style="margin:2px 0">الامتحان: ' + escHtml(exams.join(' ، ') || '-') + '</p>'
                 + '<p style="margin:2px 0">عدد الطلاب: ' + list.length + ' | متوسط الدرجات: ' + avg + '%</p>'
                 + '<p style="margin:2px 0 8px;color:#64748b;font-size:12px">مؤشرات النزاهة والذكاء الاصطناعي إرشادية وليست دليلاً قاطعاً. يمكنك تحديد الجدول ونسخه ولصقه في Excel.</p>'
@@ -2989,7 +3009,7 @@
 
         function mailtoFallback(to, list) {
             const avg = Math.round(list.reduce((a, r) => a + (r.maxScore ? r.score / r.maxScore * 100 : 0), 0) / list.length);
-            const subject = encodeURIComponent('نتائج الامتحان - المنصة الذكية');
+            const subject = encodeURIComponent('نتائج الامتحان - منصة اسكوتش');
             const body = encodeURIComponent(`عدد التسليمات: ${list.length}\nمتوسط الدرجات: ${avg}%\n\nملف الإكسيل تم تحميله على جهازك، أرفقه بهذه الرسالة قبل الإرسال.`);
             exportToExcel();
             setTimeout(() => { window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`; }, 700);
@@ -3003,11 +3023,11 @@
         async function sendResultsEmailCore(to, list, subject) {
             const now = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
             return emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
-                subject: subject || 'نتائج الامتحان - المنصة الذكية للتقييم',
+                subject: subject || 'نتائج الامتحان - منصة اسكوتش',
                 to_email: to,
                 message: buildResultsEmailText(list),
                 message_html: buildResultsEmailHtml(list),
-                name: 'المنصة الذكية للتقييم',
+                name: 'منصة اسكوتش',
                 time: now
             }, { publicKey: EMAILJS_CFG.publicKey });
         }
@@ -3164,7 +3184,7 @@
                 XLSX.utils.book_append_sheet(wb, wsDetails, 'تفصيل الأسئلة');
             }
 
-            XLSX.writeFile(wb, `تقرير_المنصة_الذكية_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(wb, `تقرير_منصة_اسكوتش_${new Date().toISOString().slice(0, 10)}.xlsx`);
             showToast('تم تصدير ملف Excel (.xlsx) بنجاح!', 'success');
         }
     </script>
@@ -3505,7 +3525,7 @@
         }
 
         async function approveDoctorRequest(uid) {
-            try { await window.fbApproveDoctor(uid); showToast('تم قبول الدكتور — يقدر يدخل ويشتغل دلوقتي', 'success'); loadAdminPanel(); }
+            try { await window.fbApproveDoctor(uid); showToast('تم قبول الدكتور — يقدر يدخل ويشتغل دلوقتي', 'success'); if (uid === window.__myUid && typeof window.fbRefreshSession === 'function') { try { await window.fbRefreshSession(); } catch (e2) {} } else loadAdminPanel(); }
             catch (e) { showToast('تعذر القبول — حاول تاني', 'danger'); }
         }
 
@@ -3762,6 +3782,8 @@
             showRequestForm(true);
             showToast('الحساب ده لسه معملش طلب انضمام — اكتب اسمك وابعت الطلب للأدمن', 'info');
         }
+
+        window.fbRefreshSession = () => handleAuthUser(fbAuth.currentUser);
 
         async function enterSession(user, asAdmin, prof) {
             isAdminLoggedIn = asAdmin;
