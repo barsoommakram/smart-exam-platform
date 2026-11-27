@@ -211,6 +211,10 @@
         </div>
         <button type="button" onclick="dismissEmailNudge()" aria-label="إغلاق" class="text-slate-400 hover:text-white text-lg leading-none">&times;</button>
     </div>
+    <div id="admin-strip" class="hidden bg-slate-900 border-b border-slate-700"><div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex justify-end"><button onclick="handleNavClick('admin')" id="tab-admin" class="nav-btn hidden flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition-all">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        <span>لوحة الأدمن</span>
+                    </button></div></div>
     <!-- الشريط العلوي -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -234,10 +238,6 @@
                     <button onclick="handleNavClick('doctor')" id="tab-doctor" class="nav-btn flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                         <i data-lucide="book-open-check" class="w-4 h-4"></i>
                         <span>دخول الدكتور</span>
-                    </button>
-                    <button onclick="handleNavClick('admin')" id="tab-admin" class="nav-btn hidden flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
-                        <i data-lucide="shield-check" class="w-4 h-4"></i>
-                        <span>لوحة الأدمن</span>
                     </button>
                     <button onclick="handleNavClick('stats')" id="tab-stats" class="nav-btn hidden flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                         <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
@@ -662,6 +662,16 @@
                 <button onclick="scanOrphans()" id="adm-orphan-scan" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">افحص (من غير مسح)</button>
                 <div id="adm-orphan-result" class="hidden text-xs text-slate-700 leading-relaxed bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1"></div>
                 <button onclick="cleanOrphans()" id="adm-orphan-clean" class="hidden w-full bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-sm transition">امسح البيانات اليتيمة</button>
+            </div>
+        
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="key-round" class="w-5 h-5 text-primary-600"></i> تغيير كلمة سر لوحة الأدمن</h2>
+                <div class="grid sm:grid-cols-2 gap-2">
+                    <input type="password" id="adm-gate-new" dir="ltr" autocomplete="new-password" placeholder="كلمة السر الجديدة" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
+                    <input type="password" id="adm-gate-new2" dir="ltr" autocomplete="new-password" placeholder="تأكيد كلمة السر" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
+                </div>
+                <button type="button" onclick="saveAdminGatePass()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">حفظ</button>
+                <p id="adm-gate-msg" class="text-xs font-bold"></p>
             </div>
         </section>
 
@@ -1267,6 +1277,7 @@
             });
             const tabAdmin = document.getElementById('tab-admin');
             if (tabAdmin) tabAdmin.classList.toggle('hidden', !isAdminLoggedIn);
+            { const st = document.getElementById('admin-strip'); if (st) st.classList.toggle('hidden', !isAdminLoggedIn); }
             const tabDoc = document.getElementById('tab-doctor');
             if (tabDoc) tabDoc.classList.toggle('hidden', !isDoctorLoggedIn);  // قبل الدخول: زر "دخول الدكتور" الخارجي هو المدخل الوحيد
             document.getElementById('tab-student').classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn);
@@ -3865,6 +3876,25 @@
 
 
         // ---------- v28.34: كلمة سر تبويب الأدمن ----------
+        async function _gateHash(pass, saltHex, iter) {
+            const salt = new Uint8Array(saltHex.match(/../g).map(h => parseInt(h, 16)));
+            const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+            const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, key, 256);
+            return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        async function _gateMake(pass) {
+            const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+            const iter = 150000;
+            return { salt, iter, hash: await _gateHash(pass, salt, iter) };
+        }
+        async function saveAdminGatePass() {
+            const a = document.getElementById('adm-gate-new'), b = document.getElementById('adm-gate-new2'), m = document.getElementById('adm-gate-msg');
+            const show = (t, bad) => { m.textContent = t; m.className = 'text-xs font-bold ' + (bad ? 'text-rose-600' : 'text-emerald-600'); };
+            if (a.value.length < 6) return show('كلمة السر لازم تكون 6 حروف على الأقل.', true);
+            if (a.value !== b.value) return show('الكلمتين مش زي بعض.', true);
+            try { await window.fbSetAdminGate(await _gateMake(a.value)); a.value = ''; b.value = ''; show('اتغيّرت كلمة سر اللوحة.', false); }
+            catch (e) { console.warn(e); show('ما اتحفظتش. اتأكد إنك نشرت القواعد الجديدة (v28.36).', true); }
+        }
         function openAdminGate() {
             if (document.getElementById('admin-gate-overlay')) return;
             const ov = document.createElement('div');
@@ -3872,39 +3902,49 @@
             ov.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm';
             ov.innerHTML = `<div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 shadow-2xl space-y-3" role="dialog" aria-modal="true">
                 <h3 class="text-base font-extrabold text-slate-900">لوحة الأدمن</h3>
-                <p class="text-xs text-slate-500">اكتب كلمة سر حساب الأدمن عشان تفتح اللوحة.</p>
-                <input type="password" id="admin-gate-pass" dir="ltr" autocomplete="current-password" placeholder="كلمة السر" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <p id="admin-gate-lead" class="text-xs text-slate-500">جاري التحميل...</p>
+                <input type="password" id="admin-gate-pass" dir="ltr" autocomplete="off" placeholder="كلمة سر اللوحة" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <input type="password" id="admin-gate-pass2" dir="ltr" autocomplete="off" placeholder="اكتبها تاني للتأكيد" class="hidden w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
                 <p id="admin-gate-err" class="hidden text-xs font-bold text-rose-600"></p>
                 <div class="flex gap-2">
-                    <button type="button" id="admin-gate-ok" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">فتح</button>
+                    <button type="button" id="admin-gate-ok" disabled class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">فتح</button>
                     <button type="button" id="admin-gate-cancel" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition">إلغاء</button>
                 </div>
             </div>`;
             document.body.appendChild(ov);
-            const inp = document.getElementById('admin-gate-pass'), err = document.getElementById('admin-gate-err'), ok = document.getElementById('admin-gate-ok');
+            const inp = document.getElementById('admin-gate-pass'), inp2 = document.getElementById('admin-gate-pass2'), err = document.getElementById('admin-gate-err'), ok = document.getElementById('admin-gate-ok'), lead = document.getElementById('admin-gate-lead');
             const close = () => { try { ov.remove(); } catch (e) {} };
-            let busy = false;
-            const submit = async () => {
-                if (busy) return;
-                const pass = inp.value;
-                if (!pass) { err.textContent = 'اكتب كلمة السر.'; err.classList.remove('hidden'); return; }
-                busy = true; ok.disabled = true; ok.textContent = 'جاري التحقق...'; err.classList.add('hidden');
+            const fail = t => { err.textContent = t; err.classList.remove('hidden'); };
+            let busy = false, gate = null, setup = false, ready = false;
+            (async () => {
                 try {
-                    await window.fbReauth(pass);
+                    gate = await window.fbGetAdminGate();
+                    setup = !gate;
+                    lead.textContent = setup ? 'أول مرة: اختار كلمة سر خاصة بلوحة الأدمن (غير كلمة سر حسابك).' : 'اكتب كلمة سر لوحة الأدمن.';
+                    if (setup) { inp2.classList.remove('hidden'); ok.textContent = 'حفظ وفتح'; }
+                    ready = true; ok.disabled = false; inp.focus();
+                } catch (e) { console.warn('gate load failed', e); lead.textContent = ''; fail('ما قدرتش أحمّل كلمة السر. اتأكد إنك نشرت قواعد v28.36 ثم حدّث الصفحة.'); }
+            })();
+            const submit = async () => {
+                if (busy || !ready) return;
+                const pass = inp.value;
+                err.classList.add('hidden');
+                if (!pass) return fail('اكتب كلمة السر.');
+                if (setup && pass.length < 6) return fail('كلمة السر لازم تكون 6 حروف على الأقل.');
+                if (setup && pass !== inp2.value) return fail('الكلمتين مش زي بعض.');
+                busy = true; ok.disabled = true;
+                try {
+                    if (setup) { await window.fbSetAdminGate(await _gateMake(pass)); }
+                    else if (await _gateHash(pass, gate.salt, gate.iter) !== gate.hash) { inp.value = ''; inp.focus(); return fail('كلمة السر غلط.'); }
                     window.__adminUnlocked = true;
                     close();
                     switchTab('admin');
-                } catch (e) {
-                    console.warn('admin gate failed', e);
-                    err.textContent = (typeof acctAuthError === 'function' && acctAuthError(e)) || 'ما اتحققش، جرّب تاني.';
-                    err.classList.remove('hidden');
-                    inp.value = ''; inp.focus();
-                } finally { busy = false; ok.disabled = false; ok.textContent = 'فتح'; }
+                } catch (e) { console.warn('admin gate failed', e); fail('ما اتحفظتش/ما اتحققش. اتأكد من القواعد الجديدة وجرّب تاني.'); }
+                finally { busy = false; ok.disabled = false; }
             };
             ok.addEventListener('click', submit);
-            inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') close(); });
+            [inp, inp2].forEach(x => x.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') close(); }));
             document.getElementById('admin-gate-cancel').addEventListener('click', close);
-            setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
         }
 
         // ---------- v28.32: حسابي (تعديل + حذف) ----------
@@ -4604,6 +4644,8 @@
             const m = s.exists() ? s.data().mode : 'off';
             return (m === 'accept' || m === 'delete') ? m : 'off';
         };
+        window.fbGetAdminGate = async () => { const d = await getDoc(doc(fbDb, 'config', 'adminGate')); return d.exists() ? d.data() : null; };
+        window.fbSetAdminGate = (o) => setDoc(doc(fbDb, 'config', 'adminGate'), o);
         window.fbSetRequestsMode = (mode) => setDoc(doc(fbDb, 'config', 'requestsMode'), { mode });
         const _readMode = async (db) => { try { const s = await getDoc(doc(db, 'config', 'requestsMode')); const m = s.exists() ? s.data().mode : 'off'; return (m === 'accept' || m === 'delete') ? m : 'off'; } catch (e) { return 'off'; } };
 
