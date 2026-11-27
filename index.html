@@ -3834,6 +3834,9 @@
             if (user && user.isAnonymous) { try { localStorage.removeItem('dr_session_hint'); } catch (e) {} return; }
             if (!user) { resetToVisitor(); return; }
 
+            try {
+                if (localStorage.getItem('doctor_notify_owner_v1') !== user.uid) { localStorage.removeItem('doctor_notify_email_v1'); localStorage.setItem('doctor_notify_owner_v1', user.uid); const f0 = document.getElementById('doc-notify-email'); if (f0) f0.value = ''; }
+            } catch (e) {}
             window.__myUid = user.uid;
             window.doctorEmail = user.email || '';
             let adminSnap = null, docSnap = null;
@@ -3927,12 +3930,14 @@
             showToast(`أهلاً ${prof.name || 'بك'}`, 'success');
             doctorSyncKeys();
             getDoc(doc(fbDb, 'settings', 'doc_' + user.uid)).then(s => {
-                const v = (s.exists() && typeof s.data().notifyEmail === 'string') ? s.data().notifyEmail : '';
+                let v = (s.exists() && typeof s.data().notifyEmail === 'string') ? s.data().notifyEmail.trim() : '';
+                if (!v && prof && typeof prof.email === 'string' && prof.email && !/@doctor\.local$/i.test(prof.email)) v = prof.email.trim();
                 localStorage.setItem('doctor_notify_email_v1', v);
                 const f = document.getElementById('doc-notify-email'); if (f) f.value = v;
                 window.__emailChecked = true;
                 updateNotifyEmailStatus();
             }).catch(() => { window.__emailChecked = true; updateNotifyEmailStatus(); });
+            
             if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
             resultsUnsub = onSnapshot(query(collection(fbDb, 'results'), where('doctorUid', '==', user.uid)), (snap) => {
                 examRecords = snap.docs.map(d => ({ _fid: d.id, ...d.data() }));
@@ -3955,6 +3960,7 @@
             isDoctorLoggedIn = false;
             isAdminLoggedIn = false;
             window.doctorEmail = '';
+            try { localStorage.removeItem('doctor_notify_email_v1'); localStorage.removeItem('doctor_notify_owner_v1'); const f1 = document.getElementById('doc-notify-email'); if (f1) f1.value = ''; } catch (e) {}
             window.__myUid = null;
             window.__myDoctorName = '';
             window.__myProfile = null;
@@ -4362,7 +4368,6 @@
             for (const d of stSnap.docs) {
                 const data = d.data();
                 if (d.id === 'doctor') {
-                    if (data.notifyEmail) await setDoc(doc(fbDb, 'settings', 'doc_' + targetUid), { notifyEmail: data.notifyEmail }, { merge: true });
                     continue;
                 }
                 if (d.id.startsWith('autosend_') && !data.doctorUid) { await updateDoc(doc(fbDb, 'settings', d.id), { doctorUid: targetUid }); tagged++; }
