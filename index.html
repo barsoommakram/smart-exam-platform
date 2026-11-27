@@ -366,17 +366,17 @@
 
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم الطالب الرباعي</label>
-                        <input type="text" id="student-name" placeholder="مثال: كريم محمد عبد الله" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <input type="text" id="student-name" placeholder="اكتب اسمك الثلاثي" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1.5">الرقم الجامعي (ID)</label>
-                            <input type="text" id="student-id" placeholder="مثال: 20240819" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            <input type="text" id="student-id" placeholder="اكتب رقمك الجامعي" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1.5">الفرقة / الشعبة</label>
-                            <input type="text" id="student-group" value="الفرقة الأولى - علوم البيانات" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                            <input type="text" id="student-group" placeholder="اكتب فرقتك أو شعبتك" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         </div>
                     </div>
 
@@ -511,7 +511,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المستخدم أو البريد الإلكتروني</label>
-                        <input type="text" id="dauth-username" placeholder="dr_sherif" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                        <input type="text" id="dauth-username" placeholder="اسم المستخدم" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">كلمة المرور</label>
@@ -544,17 +544,17 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم الدكتور (بيظهر للطلاب)</label>
-                        <input type="text" id="req-name" placeholder="مثال: د. منى عبد الرحمن" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <input type="text" id="req-name" placeholder="اكتب اسمك" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
                     <div id="req-email-wrap">
                         <label class="block text-xs font-bold text-slate-700 mb-1.5">البريد الإلكتروني (اختياري)</label>
-                        <input type="email" id="req-email" placeholder="name@example.com" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                        <input type="email" id="req-email" placeholder="اكتب الإيميل هنا" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none text-left">
                         <p class="text-[11px] font-bold text-amber-700 mt-1.5 leading-relaxed">من غير إيميل مش هتقدر تسترجع حسابك لو نسيت كلمة المرور.</p>
                     </div>
                     <div id="req-creds">
                         <div class="mb-4">
                             <label class="block text-xs font-bold text-slate-700 mb-1.5">اسم المستخدم (للدخول فقط، مش بيظهر للطلاب)</label>
-                            <input type="text" id="req-username" placeholder="dr_mona" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
+                            <input type="text" id="req-username" placeholder="اسم المستخدم" dir="ltr" autocomplete="off" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono focus:ring-2 focus:ring-primary-500 outline-none text-left">
                             <p class="text-[11px] text-slate-400 mt-1">حروف إنجليزية صغيرة وأرقام و _ بس، من ٣ لـ ٣٠ حرف</p>
                         </div>
                         <div>
@@ -642,22 +642,28 @@
         <section id="view-doctor" class="hidden space-y-6">
             <div class="bg-gradient-to-l from-primary-900 to-primary-700 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <span class="inline-block bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-2">لوحة عضو هيئة التدريس • د. شريف الشوربجي</span>
-                    <h2 class="text-xl sm:text-2xl font-bold mb-1">إدارة الامتحانات، توليد الأسئلة، والمرجع العلمي</h2>
+                                        <h2 class="text-xl sm:text-2xl font-bold mb-1">إدارة الامتحانات، توليد الأسئلة، والمرجع العلمي</h2>
                     <p class="text-primary-100 text-xs sm:text-sm max-w-2xl">أنشئ امتحانات متعددة، ولّد أسئلة ونماذج إجابة تلقائياً من نص الكتاب الدراسي، واعتمد الاختبار ليظهر فوراً للطلاب.</p>
                 </div>
                 <div class="flex flex-wrap gap-2 shrink-0">
-                    <button onclick="createNewExamTemplate()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow transition flex items-center gap-1.5">
+                    <button onclick="createNewExamTemplate()" id="btn-new-exam-top" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow transition flex items-center gap-1.5">
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                        <span>إنشاء امتحان جديد</span>
+                        <span>إضافة امتحان</span>
                     </button>
-                    <button onclick="deleteAllMyExams()" class="bg-rose-500/80 hover:bg-rose-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <button onclick="deleteAllMyExams()" id="btn-delete-all-exams" class="bg-rose-500/80 hover:bg-rose-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                         <span>حذف جميع الامتحانات</span>
                     </button>
                 </div>
             </div>
 
+            <div id="doctor-empty" class="hidden bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-4 shadow-sm">
+                <div class="mx-auto w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center"><i data-lucide="file-plus-2" class="w-7 h-7"></i></div>
+                <h3 class="text-base font-extrabold text-slate-900">مفيش امتحانات لسه</h3>
+                <p class="text-xs text-slate-500">دوس على "إضافة امتحان" عشان تبدأ امتحان جديد فاضي.</p>
+                <button onclick="createNewExamTemplate()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow transition inline-flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4"></i><span>إضافة امتحان</span></button>
+            </div>
+            <div id="doctor-editor-wrap" class="space-y-6">
             <!-- شريط اختيار وتبديل الامتحانات -->
             <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -750,7 +756,7 @@
                         <div class="space-y-3 mt-3">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">كود دخول الامتحان (اتركه فارغاً بدون كود)</label>
-                                <input type="text" id="doc-access-code" oninput="syncCurrentExamFields()" placeholder="مثال: DT2026" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                                <input type="text" id="doc-access-code" oninput="syncCurrentExamFields()" placeholder="اكتب الكود (أو سيبه فاضي)" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1">نص الكتاب الدراسي / المرجع العلمي (يُستخدم لتوليد الأسئلة وللتصحيح)</label>
@@ -828,12 +834,14 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">إيميل الدكتور</label>
                     <div class="flex gap-2">
-                        <input type="email" id="doc-notify-email" placeholder="doctor@example.com" class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <input type="email" id="doc-notify-email" dir="ltr" placeholder="اكتب إيميلك هنا" onkeydown="if(event.key==='Enter'){event.preventDefault();saveDoctorNotifyEmail();}" oninput="updateNotifyEmailStatus()" class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         <button type="button" onclick="saveDoctorNotifyEmail()" class="bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold px-5 py-2 rounded-xl transition">حفظ</button>
                     </div>
+                    <p id="notify-email-status" class="text-xs font-bold mt-2 text-rose-600">لم يتم إدخال بريد</p>
                     <p class="text-[11px] text-slate-500 mt-2">يُحفظ في قاعدة البيانات ويظهر من أي جهاز. زر "إرسال للإيميل" في صفحة النتائج يرسل ملخص النتائج (نص) لهذا الإيميل تلقائياً. الإكسيل غير مرفق، حمّله من زر التصدير. لو فشل الإرسال يتم فتح رسالة جاهزة كبديل.</p>
                 </div>
             </div>
+        </div>
         </section>
 
         <section id="view-reports" class="hidden space-y-6">
@@ -1005,7 +1013,10 @@
             clearTimeout(examSyncTimer);
             examSyncTimer = setTimeout(async () => {
                 try {
-                    await window.fbSaveExam(getCurrentDoctorExam());
+                    const _ex = getCurrentDoctorExam();
+                    if (!_ex) return;
+                    if (!String(_ex.title || '').trim() && !(_ex.questions || []).some(q => String(q.text || '').trim())) return; // مسودة فاضية: ما تتنشرش
+                    await window.fbSaveExam(_ex);
                 } catch (e) {
                     showToast((e && e.userMessage) ? e.userMessage : 'فشل حفظ الامتحان في قاعدة البيانات — التعديل محفوظ محلياً فقط', 'warning');
                 }
@@ -1105,7 +1116,7 @@
             if (tabName === 'doctor') populateDoctorWorkspace();
             if (tabName === 'admin') loadAdminPanel();
             if (tabName === 'stats') renderStatsTab();
-            if (tabName === 'email') document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || '';
+            if (tabName === 'email') { document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || ''; updateNotifyEmailStatus(); setTimeout(() => { try { document.getElementById('doc-notify-email').focus(); } catch (e) {} }, 50); }
             if (tabName === 'reports') {
                 populateReportFilter();
                 renderExcelTable();
@@ -1315,7 +1326,11 @@
 
         function populateDoctorWorkspace() {
             const exam = getCurrentDoctorExam();
-            if (!exam) { try { renderDoctorExamPills(); } catch (e) {} return; }
+            const _w = document.getElementById('doctor-editor-wrap'), _e = document.getElementById('doctor-empty'), _da = document.getElementById('btn-delete-all-exams');
+            if (_w) _w.classList.toggle('hidden', !exam);
+            if (_e) _e.classList.toggle('hidden', !!exam);
+            if (_da) _da.style.display = exam ? '' : 'none';
+            if (!exam) { try { renderDoctorExamPills(); } catch (e) {} refreshIcons(); return; }
             renderDoctorExamPills();
             document.getElementById('doc-course-name').value = exam.courseName;
             document.getElementById('doc-exam-title').value = exam.title;
@@ -1331,7 +1346,7 @@
             document.getElementById('doc-notify-email').value = localStorage.getItem('doctor_notify_email_v1') || '';
             refreshPeriodUI();
             renderDoctorQuestionsList();
-            document.getElementById('btn-delete-exam').style.display = exams.length > 1 ? 'inline-flex' : 'none';
+            document.getElementById('btn-delete-exam').style.display = exams.length >= 1 ? 'inline-flex' : 'none';
             refreshIcons();
         }
 
@@ -1349,7 +1364,7 @@
                 btn.className = isSelected
                     ? 'bg-primary-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-xs'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-1.5 rounded-xl transition';
-                btn.textContent = ex.title;
+                btn.textContent = ex.title || 'امتحان بدون عنوان';
                 container.appendChild(btn);
             });
         }
@@ -1357,6 +1372,7 @@
         const BOOK_MAX_CHARS = 300000; // حد مستند Firestore 1 ميجا، والعربي حرفه بايتين تقريباً
         function syncCurrentExamFields() {
             const exam = getCurrentDoctorExam();
+            if (!exam) return;
             exam.courseName = document.getElementById('doc-course-name').value;
             exam.title = document.getElementById('doc-exam-title').value;
             if (document.getElementById('doc-book-content').value.length > BOOK_MAX_CHARS) {
@@ -1381,8 +1397,8 @@
             const newId = 'exam_' + Date.now();
             const newExam = {
                 id: newId,
-                courseName: 'مقرر جديد - التحول الرقمي',
-                title: `امتحان جديد (${exams.length + 1})`,
+                courseName: '',
+                title: '',
                 accessCode: '',
                 startTime: '',
                 endTime: '',
@@ -1391,21 +1407,14 @@
                 shuffleQuestions: false,
                 shuffleOptions: false,
                 showScoreToStudent: false,
-                bookContent: 'أدخل هنا نص المرجع العلمي أو الفصل الدراسي ليتم توليد الأسئلة وتصحيح إجابات الطلاب بناءً عليه.',
-                questions: [
-                    {
-                        id: 'q_' + Date.now(),
-                        text: 'اشرح الفكرة الرئيسية الواردة في المرجع الدراسي وأهم تطبيقاتها العملية.',
-                        modelAnswer: 'توضيح الفكرة المحورية للمرجع وذكر تطبيقين عمليين بدقة.',
-                        maxScore: 10
-                    }
-                ]
+                bookContent: '',
+                questions: []
             };
             exams.push(newExam);
             currentDoctorExamId = newId;
             saveState();
             populateDoctorWorkspace();
-            showToast('تم إنشاء امتحان جديد — عدّل العنوان والمرجع والأسئلة ثم اعتمدها', 'success');
+            showToast('تم فتح امتحان جديد فاضي — اكتب العنوان وأضف الأسئلة ثم اعتمده', 'success');
         }
 
         function showConfirmModal({ title = 'تأكيد', message = '', confirmLabel = 'تأكيد', cancelLabel = 'إلغاء' } = {}) {
@@ -1439,11 +1448,12 @@
         }
 
         function duplicateCurrentExam() {
+            if (!getCurrentDoctorExam()) return;
             syncCurrentExamFields();
             const src = getCurrentDoctorExam();
             const copy = JSON.parse(JSON.stringify(src));
             copy.id = 'exam_' + Date.now();
-            copy.title = src.title + ' (نسخة)';
+            copy.title = (src.title || '') ? src.title + ' (نسخة)' : '';
             exams.push(copy);
             currentDoctorExamId = copy.id;
             saveState();
@@ -1452,16 +1462,13 @@
         }
 
         async function deleteCurrentExam() {
-            if (exams.length <= 1) {
-                showToast('يجب الإبقاء على امتحان واحد على الأقل في المنصة', 'warning');
-                return;
-            }
+            if (!getCurrentDoctorExam()) return;
             const ex0 = getCurrentDoctorExam();
             const okDel = await showConfirmModal({ title: 'حذف الامتحان', message: `هل أنت متأكد من حذف الامتحان "${ex0 ? ex0.title : ''}"؟ لا يمكن التراجع عن الحذف.`, confirmLabel: 'تأكيد الحذف', cancelLabel: 'إلغاء' });
             if (!okDel) return;
             const removedId = currentDoctorExamId;
             exams = exams.filter(e => e.id !== currentDoctorExamId);
-            currentDoctorExamId = exams[0].id;
+            currentDoctorExamId = exams[0] ? exams[0].id : null;
             saveState();
             populateDoctorWorkspace();
             try { if (typeof window.fbDeleteExam === 'function') await window.fbDeleteExam(removedId); } catch (e) {}
@@ -1795,6 +1802,8 @@
         async function publishExamToStudents() {
             syncCurrentExamFields();
             const exam = getCurrentDoctorExam();
+            if (!exam) return;
+            if (!String(exam.title || '').trim()) { showToast('اكتب عنوان الامتحان الأول قبل الاعتماد', 'warning'); return; }
             const validQuestions = exam.questions.filter(q => q.text.trim().length > 0);
             if (!validQuestions.length) {
                 showToast('أضف سؤالاً واحداً على الأقل قبل اعتماد الامتحان', 'warning');
@@ -1910,7 +1919,7 @@
         async function startExam() {
             const name = document.getElementById('student-name').value.trim();
             const id = document.getElementById('student-id').value.trim();
-            const group = document.getElementById('student-group').value.trim() || 'الفرقة الأولى';
+            const group = document.getElementById('student-group').value.trim() || 'غير محدد';
             const examId = document.getElementById('student-exam-select').value;
             const exam = exams.find(e => e.id === examId) || null;
 
@@ -2893,10 +2902,18 @@
             showToast('تم مسح سجل النتائج', 'info');
         }
 
+        function updateNotifyEmailStatus() {
+            const el = document.getElementById('notify-email-status'); if (!el) return;
+            const saved = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
+            if (saved) { el.textContent = 'الإيميل المحفوظ: ' + saved; el.className = 'text-xs font-bold mt-2 text-emerald-600'; }
+            else { el.textContent = 'لم يتم إدخال بريد'; el.className = 'text-xs font-bold mt-2 text-rose-600'; }
+        }
+
         async function saveDoctorNotifyEmail() {
             const v = document.getElementById('doc-notify-email').value.trim();
             if (v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { showToast('صيغة الإيميل غير صحيحة', 'warning'); return; }
             localStorage.setItem('doctor_notify_email_v1', v);
+            updateNotifyEmailStatus();
             if (typeof window.fbSaveSettings === 'function') {
                 try { await window.fbSaveSettings({ notifyEmail: v }); showToast('تم حفظ إيميل الدكتور في قاعدة البيانات', 'success'); }
                 catch (e) { showToast('تعذر الحفظ في قاعدة البيانات — محفوظ على هذا الجهاز فقط (تأكد من تحديث القواعد)', 'warning'); }
@@ -2993,8 +3010,8 @@
         async function emailExcelToDoctor() {
             const to = (localStorage.getItem('doctor_notify_email_v1') || '').trim();
             if (!to) {
-                showToast('اكتب إيميل الدكتور أولاً في تبويب الإيميل المستقبل', 'warning');
-                switchTab('email');
+                const go = await showConfirmModal({ title: 'لم يتم إدخال بريد', message: 'مفيش إيميل متسجل عشان نبعتله النتائج. أضف الإيميل من تبويب البريد الأول.', confirmLabel: 'روح لتبويب البريد', cancelLabel: 'إلغاء' });
+                if (go) switchTab('email');
                 return;
             }
             const list = getFilteredRecords();
@@ -3699,9 +3716,6 @@
                 console.warn('تعذر تحميل امتحانات الدكتور', e);
                 exams = [];
             }
-            if (!exams.length) {
-                window.__bootstrapExam = true; try { createNewExamTemplate(); } finally { window.__bootstrapExam = false; }
-            }
             currentDoctorExamId = exams[0] ? exams[0].id : null;
             localStorage.setItem(STORAGE_KEYS.EXAMS, JSON.stringify(exams));
         }
@@ -3775,10 +3789,10 @@
             showToast(`أهلاً ${prof.name || 'بك'}`, 'success');
             doctorSyncKeys();
             getDoc(doc(fbDb, 'settings', 'doc_' + user.uid)).then(s => {
-                if (s.exists() && typeof s.data().notifyEmail === 'string') {
-                    localStorage.setItem('doctor_notify_email_v1', s.data().notifyEmail);
-                    const f = document.getElementById('doc-notify-email'); if (f) f.value = s.data().notifyEmail;
-                }
+                const v = (s.exists() && typeof s.data().notifyEmail === 'string') ? s.data().notifyEmail : '';
+                localStorage.setItem('doctor_notify_email_v1', v);
+                const f = document.getElementById('doc-notify-email'); if (f) f.value = v;
+                updateNotifyEmailStatus();
             }).catch(() => {});
             if (resultsUnsub) { resultsUnsub(); resultsUnsub = null; }
             resultsUnsub = onSnapshot(query(collection(fbDb, 'results'), where('doctorUid', '==', user.uid)), (snap) => {
