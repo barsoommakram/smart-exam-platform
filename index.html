@@ -245,7 +245,7 @@
                     </button>
                     <button onclick="handleNavClick('email')" id="tab-email" class="nav-btn flex hidden items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all">
                         <i data-lucide="mail" class="w-4 h-4"></i>
-                        <span>الإيميل المستقبل</span>
+                        <span>الإيميل والبيانات الشخصية</span>
                     </button>
                     <button onclick="handleNavClick('reports')" id="tab-reports" class="nav-btn flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 transition-all relative">
                         <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
@@ -893,7 +893,7 @@
                 <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                     <div class="bg-sky-100 text-sky-700 p-2 rounded-xl"><i data-lucide="mail" class="w-5 h-5"></i></div>
                     <div>
-                        <h3 class="font-extrabold text-slate-900 text-base">الإيميل المستقبل</h3>
+                        <h3 class="font-extrabold text-slate-900 text-base">الإيميل والبيانات الشخصية</h3>
                         <p class="text-xs text-slate-500">الإيميل الذي يُرسل إليه ملف الإكسيل</p>
                     </div>
                 </div>
@@ -3905,30 +3905,85 @@
                 <p id="admin-gate-lead" class="text-xs text-slate-500">جاري التحميل...</p>
                 <input type="password" id="admin-gate-pass" dir="ltr" autocomplete="off" placeholder="كلمة سر اللوحة" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
                 <input type="password" id="admin-gate-pass2" dir="ltr" autocomplete="off" placeholder="اكتبها تاني للتأكيد" class="hidden w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <input type="password" id="admin-gate-pass3" dir="ltr" autocomplete="off" placeholder="تأكيد كلمة السر الجديدة" class="hidden w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
                 <p id="admin-gate-err" class="hidden text-xs font-bold text-rose-600"></p>
+                <button type="button" id="admin-gate-forgot" class="hidden text-xs font-bold text-primary-600 hover:underline">نسيت كلمة السر؟</button>
                 <div class="flex gap-2">
                     <button type="button" id="admin-gate-ok" disabled class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">فتح</button>
                     <button type="button" id="admin-gate-cancel" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition">إلغاء</button>
                 </div>
             </div>`;
             document.body.appendChild(ov);
-            const inp = document.getElementById('admin-gate-pass'), inp2 = document.getElementById('admin-gate-pass2'), err = document.getElementById('admin-gate-err'), ok = document.getElementById('admin-gate-ok'), lead = document.getElementById('admin-gate-lead');
+            const inp = document.getElementById('admin-gate-pass'), inp2 = document.getElementById('admin-gate-pass2'), err = document.getElementById('admin-gate-err'), ok = document.getElementById('admin-gate-ok'), lead = document.getElementById('admin-gate-lead'), inp3 = document.getElementById('admin-gate-pass3'), forgot = document.getElementById('admin-gate-forgot');
             const close = () => { try { ov.remove(); } catch (e) {} };
             const fail = t => { err.textContent = t; err.classList.remove('hidden'); };
-            let busy = false, gate = null, setup = false, ready = false;
+            let busy = false, gate = null, setup = false, ready = false, reset = false;
             (async () => {
                 try {
                     gate = await window.fbGetAdminGate();
                     setup = !gate;
                     lead.textContent = setup ? 'أول مرة: اختار كلمة سر خاصة بلوحة الأدمن (غير كلمة سر حسابك).' : 'اكتب كلمة سر لوحة الأدمن.';
-                    if (setup) { inp2.classList.remove('hidden'); ok.textContent = 'حفظ وفتح'; }
+                    if (setup) { inp2.classList.remove('hidden'); ok.textContent = 'حفظ وفتح'; } else forgot.classList.remove('hidden');
                     ready = true; ok.disabled = false; inp.focus();
                 } catch (e) { console.warn('gate load failed', e); lead.textContent = ''; fail('ما قدرتش أحمّل كلمة السر. اتأكد إنك نشرت قواعد v28.36 ثم حدّث الصفحة.'); }
             })();
+            const realMail = () => {
+                const a = ((window.fbAuthEmail && window.fbAuthEmail()) || '').trim(), b = ((window.__myProfile && window.__myProfile.email) || '').trim();
+                const ok = x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) && !/@doctor\.local$/i.test(x);
+                return ok(a) ? a : (ok(b) ? b : '');
+            };
+            const maskMail = m => { const [u, d] = m.split('@'); return u.slice(0, 2) + '***@' + d; };
+            let codeHash = '', codeExp = 0, tries = 0, step = 0, mailTo = '';
+            forgot.addEventListener('click', () => {
+                reset = true; step = 1; err.classList.add('hidden'); forgot.classList.add('hidden');
+                mailTo = realMail();
+                inp.classList.add('hidden'); inp2.classList.add('hidden'); inp3.classList.add('hidden');
+                if (!mailTo) { lead.textContent = ''; fail('مفيش إيميل حقيقي متسجل لحساب الأدمن، فمقدرش أبعتله كود. ضيف إيميل لحسابك الأول.'); ok.disabled = true; return; }
+                lead.textContent = 'هنبعت كود من 6 أرقام على إيميل حسابك (' + maskMail(mailTo) + ') وبعدها تختار كلمة سر جديدة للوحة.';
+                ok.textContent = 'ابعت الكود';
+            });
             const submit = async () => {
                 if (busy || !ready) return;
                 const pass = inp.value;
                 err.classList.add('hidden');
+                if (reset && step === 1) {
+                    if (!(typeof emailjsReady === 'function' && emailjsReady())) return fail('الإرسال بالإيميل مش شغال دلوقتي. جرّب بعدين.');
+                    busy = true; ok.disabled = true; ok.textContent = 'جاري الإرسال...';
+                    try {
+                        const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
+                        codeHash = await _gateHash(code, 'a1b2c3d4e5f60718293a4b5c6d7e8f90', 20000); codeExp = Date.now() + 10 * 60 * 1000; tries = 0;
+                        await emailjs.send(EMAILJS_CFG.serviceId, EMAILJS_CFG.templateId, {
+                            subject: 'كود تغيير كلمة سر لوحة الأدمن - BiLab', to_email: mailTo, name: 'BiLab',
+                            message: 'كود التحقق: ' + code + '\nصالح 10 دقايق. لو مش إنت اللي طلبته تجاهل الرسالة.',
+                            message_html: '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:15px"><p>كود التحقق لتغيير كلمة سر لوحة الأدمن:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">' + code + '</p><p>صالح 10 دقايق. لو مش إنت اللي طلبته تجاهل الرسالة.</p></div>',
+                            time: new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })
+                        }, { publicKey: EMAILJS_CFG.publicKey });
+                        step = 2;
+                        lead.textContent = 'بعتنا الكود على ' + maskMail(mailTo) + '. اكتبه هنا واختار كلمة سر جديدة للوحة.';
+                        inp.classList.remove('hidden'); inp2.classList.remove('hidden'); inp3.classList.remove('hidden');
+                        inp.placeholder = 'الكود (6 أرقام)'; inp.value = ''; inp.setAttribute('inputmode', 'numeric');
+                        inp2.placeholder = 'كلمة سر اللوحة الجديدة'; inp2.value = ''; inp3.value = '';
+                        ok.textContent = 'تغيير وفتح'; inp.focus();
+                    } catch (e) { console.warn('code mail failed', e); ok.textContent = 'ابعت الكود'; fail('ما قدرتش أبعت الإيميل. جرّب تاني.'); }
+                    finally { busy = false; ok.disabled = false; }
+                    return;
+                }
+                if (reset && step === 2) {
+                    if (!pass) return fail('اكتب الكود اللي وصلك.');
+                    if (inp2.value.length < 6) return fail('كلمة سر اللوحة لازم تكون 6 حروف على الأقل.');
+                    if (inp2.value !== inp3.value) return fail('الكلمتين الجداد مش زي بعض.');
+                    if (Date.now() > codeExp) return fail('الكود انتهى. اقفل النافذة وابدأ من جديد.');
+                    if (tries >= 5) return fail('محاولات كتير غلط. اقفل النافذة وابدأ من جديد.');
+                    busy = true; ok.disabled = true;
+                    try {
+                        tries++;
+                        if (await _gateHash(pass.trim(), 'a1b2c3d4e5f60718293a4b5c6d7e8f90', 20000) !== codeHash) { inp.value = ''; inp.focus(); return fail('الكود غلط.'); }
+                        await window.fbSetAdminGate(await _gateMake(inp2.value));
+                        window.__adminUnlocked = true; close(); switchTab('admin');
+                    } catch (e) { console.warn('reset failed', e); fail('ما اتغيّرتش. جرّب تاني.'); }
+                    finally { busy = false; ok.disabled = false; }
+                    return;
+                }
                 if (!pass) return fail('اكتب كلمة السر.');
                 if (setup && pass.length < 6) return fail('كلمة السر لازم تكون 6 حروف على الأقل.');
                 if (setup && pass !== inp2.value) return fail('الكلمتين مش زي بعض.');
@@ -3943,7 +3998,7 @@
                 finally { busy = false; ok.disabled = false; }
             };
             ok.addEventListener('click', submit);
-            [inp, inp2].forEach(x => x.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') close(); }));
+            [inp, inp2, inp3].forEach(x => x.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') close(); }));
             document.getElementById('admin-gate-cancel').addEventListener('click', close);
         }
 
@@ -4775,6 +4830,7 @@
         // حذف نهائي لدكتور وكل بياناته (أجزاء ≤ 400 عملية، وآمن لو اتكرر)
 
         // v28.32: حساب الدكتور بنفسه: تعديل الاسم/اليوزر وحذف الحساب (كلهم بعد إعادة كلمة المرور)
+        window.fbAuthEmail = () => (fbAuth.currentUser && fbAuth.currentUser.email) || '';
         window.fbReauth = async (pass) => {
             const u = fbAuth.currentUser;
             if (!u || !u.email) throw Object.assign(new Error('no user'), { code: 'app/no-user' });
