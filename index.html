@@ -189,12 +189,12 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div id="site-logo" onclick="goHome()" title="" class="bg-primary-600 text-white p-2.5 rounded-xl shadow-md shadow-primary-600/20 cursor-pointer select-none">
-                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                <div id="site-logo" onclick="goHome()" title="" class="rounded-xl shadow-md cursor-pointer select-none overflow-hidden">
+                    <svg class="w-11 h-11 block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#ecfdf5"/><path d="M32 8C18 18 14 32 20 46c6 8 18 8 24 0 6-14 2-28-12-38z" fill="#22c55e"/><path d="M32 12v44M32 26l-9-6M32 26l9-6M32 36l-11-7M32 36l11-7M32 46l-8-5M32 46l8-5" stroke="#14532d" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
                 </div>
                 <div>
                     <h1 class="text-base sm:text-xl font-extrabold text-slate-900 leading-tight">منصة اسكوتش</h1>
-                    <p class="text-[11px] sm:text-xs text-slate-500 font-medium">مشروع التحول الرقمي • التقييم المرجعي وضبط نزاهة الاختبارات</p>
+                    <p class="text-[11px] sm:text-xs text-slate-500 font-medium">منصة الامتحانات وكشف الغش الذكية</p>
                 </div>
             </div>
 
@@ -651,9 +651,9 @@
                         <i data-lucide="plus-circle" class="w-4 h-4"></i>
                         <span>إنشاء امتحان جديد</span>
                     </button>
-                    <button onclick="resetAllDemoData()" class="bg-white/15 hover:bg-white/25 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                        <span>إعادة الضبط</span>
+                    <button onclick="deleteAllMyExams()" class="bg-rose-500/80 hover:bg-rose-500 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>حذف جميع الامتحانات</span>
                     </button>
                 </div>
             </div>
@@ -941,64 +941,7 @@
             DOCTOR_AUTH: 'smart_exam_platform_doc_auth_v3'
         };
 
-        const DEFAULT_EXAMS = [
-            {
-                id: 'exam_dt_1',
-                courseName: 'أساسيات التحول الرقمي والحوكمة الذكية',
-                title: 'الاختبار الدوري الأول - مفاهيم التحول الرقمي',
-                bookContent: `الفصل الأول: مفهوم التحول الرقمي وأركانه الأساسية
-التحول الرقمي (Digital Transformation) هو عملية استراتيجية شاملة تهدف إلى دمج التقنيات الرقمية في جميع مجالات العمل المؤسسي والأكاديمي، مما يؤدي إلى تغيير جذري في طريقة تقديم الخدمات وتحقيق القيمة للمستفيدين.
-ولا يقتصر التحول الرقمي على مجرد تحويل الملفات الورقية إلى صيغة رقمية (الرقمنة - Digitization)، بل يرتكز على ثلاثة محاور رئيسية متكاملة وهي:
-1. تطوير العمليات التشغيلية وأتمتتها لرفع الكفاءة وتقليل الأخطاء البشرية.
-2. بناء بنية تحتية تكنولوجية مرنة وآمنة تدعم اتخاذ القرار المبني على البيانات.
-3. تأهيل العنصر البشري وتغيير الثقافة المؤسسية لتبني الابتكار والتعلم المستمر.
-
-الفصل الثاني: الحوكمة الرقمية وجودة البيانات
-تُعنى الحوكمة الرقمية بوضع الأطر والسياسات والمسؤوليات لضمان استخدام التقنية والبيانات بكفاءة وشفافية وامتثال أمني.`,
-                questions: [
-                    {
-                        id: 'q1',
-                        text: 'عرّف التحول الرقمي وفقاً للمرجع الدراسي، موضحاً الفرق بينه وبين الرقمنة (Digitization) مع ذكر المحاور الثلاثة الرئيسية.',
-                        modelAnswer: 'التحول الرقمي عملية استراتيجية شاملة لدمج التقنيات الرقمية لإحداث تغيير جذري في تقديم الخدمات وتحقيق القيمة، وهو أوسع من الرقمنة التي تقتصر على تحويل الملفات الورقية لصيغة رقمية. ويرتكز على ثلاثة محاور: أتمتة العمليات التشغيلية، بنية تحتية مرنة وآمنة تدعم القرار المبني على البيانات، وتأهيل العنصر البشري والثقافة المؤسسية.',
-                        maxScore: 10
-                    },
-                    {
-                        id: 'q2',
-                        text: 'ما الهدف الأساسي من الحوكمة الرقمية كما ورد في المرجع؟',
-                        modelAnswer: 'وضع الأطر والسياسات والمسؤوليات لضمان استخدام التقنية والبيانات بكفاءة وشفافية وامتثال أمني.',
-                        maxScore: 5
-                    },
-                    {
-                        id: 'q3',
-                        type: 'mcq',
-                        text: 'أي مما يلي يُعد من المحاور الرئيسية للتحول الرقمي وفق المرجع الدراسي؟',
-                        options: [
-                            'تحويل الملفات الورقية إلى صيغة رقمية فقط',
-                            'تأهيل العنصر البشري وتغيير الثقافة المؤسسية',
-                            'الاستغناء الكامل عن البيانات عند اتخاذ القرار',
-                            'تقليل الاعتماد على البنية التحتية التكنولوجية'
-                        ],
-                        correctIndex: 1,
-                        maxScore: 5
-                    }
-                ]
-            },
-            {
-                id: 'exam_ds_2',
-                courseName: 'مقدمة في علوم البيانات والتحليل الإحصائي',
-                title: 'كويز عملي - إعداد البيانات والنماذج',
-                bookContent: `تنظيف البيانات (Data Cleaning) هو خطوة أساسية في علم البيانات تهدف إلى معالجة القيم المفقودة، إزالة التكرارات، واكتشاف القيم الشاذة (Outliers) قبل تدريب النماذج.
-تعتمد النماذج الإحصائية والتعلم الآلي على تقسيم البيانات إلى مجموعة تدريب (Training Set) ومجموعة اختبار (Testing Set) لتقييم قدرة النموذج على التعميم دون فرط التخصيص (Overfitting).`,
-                questions: [
-                    {
-                        id: 'q201',
-                        text: 'لماذا يُعد تنظيف البيانات خطوة أساسية قبل تدريب النماذج؟ وما المقصود بفرط التخصيص (Overfitting)؟',
-                        modelAnswer: 'تنظيف البيانات يعالج القيم المفقودة ويزيل التكرارات والقيم الشاذة لضمان جودة المدخلات. وفرط التخصيص يحدث عندما يحفظ النموذج بيانات التدريب ولا يعمم جيداً على بيانات الاختبار الجديدة.',
-                        maxScore: 10
-                    }
-                ]
-            }
-        ];
+        const DEFAULT_EXAMS = []; // مفيش امتحانات افتراضية
 
         const DEFAULT_RECORDS = [];
 
@@ -1039,12 +982,12 @@
         function loadState() {
             try {
                 const savedExams = localStorage.getItem(STORAGE_KEYS.EXAMS);
-                exams = savedExams ? JSON.parse(savedExams) : JSON.parse(JSON.stringify(DEFAULT_EXAMS));
-                if (!exams.length) exams = JSON.parse(JSON.stringify(DEFAULT_EXAMS));
-                currentDoctorExamId = exams[0].id;
+                exams = savedExams ? JSON.parse(savedExams) : [];
+                if (!Array.isArray(exams)) exams = [];
+                currentDoctorExamId = exams[0] ? exams[0].id : null;
             } catch (e) {
-                exams = JSON.parse(JSON.stringify(DEFAULT_EXAMS));
-                currentDoctorExamId = exams[0].id;
+                exams = [];
+                currentDoctorExamId = null;
             }
             examRecords = [];
             isDoctorLoggedIn = false;
@@ -1109,17 +1052,24 @@
         // ---- سجل المتصفح: زر الرجوع يرجّع لبوابة الطالب بدل الخروج من الموقع ----
         let _navFromPop = false;
         function switchTab(tabName) {
+            const prev = window.__curTab;
             const finalTab = _switchTabCore(tabName);
+            window.__curTab = finalTab;
+            // سجل المتصفح: التنقل بين التابات ما بيعملش مدخلات ولا بيلمس الرابط. مدخل واحد بس عند فتح شاشة دخول الدكتور/الطلب.
             try {
-                const cur = history.state && history.state.t;
-                if (_navFromPop || cur === undefined || cur === null) history.replaceState({ t: finalTab }, '');
-                else if (cur !== finalTab) history.pushState({ t: finalTab }, '');
+                const hs = history.state && history.state.t;
+                if (!_navFromPop && finalTab === 'doctor-auth' && prev !== 'doctor-auth' && hs !== 'auth') history.pushState({ t: 'auth' }, '');
             } catch (e) {}
         }
+        // حارس: مدخلين في السجل عشان الرجوع ما يخرجش من الموقع أبداً
+        try { history.replaceState({ t: 'guard' }, ''); history.pushState({ t: 'app' }, ''); } catch (e) {}
         window.addEventListener('popstate', (ev) => {
-            const t = (ev.state && ev.state.t) || 'student';
+            const t = ev.state && ev.state.t;
+            const loggedIn = isDoctorLoggedIn || isAdminLoggedIn;
+            if (t !== 'app' && t !== 'auth') { try { history.pushState({ t: 'app' }, ''); } catch (e) {} }
+            if (loggedIn) return; // الجلسة والتاب الحالي زي ما هم
             _navFromPop = true;
-            try { switchTab(t); } finally { _navFromPop = false; }
+            try { switchTab(t === 'auth' ? 'doctor-auth' : 'student'); } finally { _navFromPop = false; }
         });
 
         function _switchTabCore(tabName) {
@@ -1365,6 +1315,7 @@
 
         function populateDoctorWorkspace() {
             const exam = getCurrentDoctorExam();
+            if (!exam) { try { renderDoctorExamPills(); } catch (e) {} return; }
             renderDoctorExamPills();
             document.getElementById('doc-course-name').value = exam.courseName;
             document.getElementById('doc-exam-title').value = exam.title;
@@ -1868,19 +1819,27 @@
             switchTab('student');
         }
 
-        async function resetAllDemoData() {
-            exams = JSON.parse(JSON.stringify(DEFAULT_EXAMS));
-            examRecords = [];
-            currentDoctorExamId = exams[0].id;
-            saveState();
+        // حذف كل امتحانات الدكتور الحالي فقط (مش بتاعة دكاترة تانيين، ومش بيرجّع امتحانات افتراضية)
+        async function deleteAllMyExams() {
+            if (!isDoctorLoggedIn || !window.__myUid) { showToast('الزر ده للدكتور المسجل دخوله بس', 'warning'); return; }
+            const mine = exams.filter(e => !e.doctorUid || e.doctorUid === window.__myUid);
+            if (!mine.length) { showToast('مفيش امتحانات تتحذف', 'info'); return; }
+            const ok1 = await showConfirmModal({ title: 'حذف جميع الامتحانات', message: `هتتحذف كل امتحاناتك (${mine.length}) نهائيًا من المنصة والطلاب مش هيقدروا يدخلوها. امتحانات الدكاترة التانيين ونتائج الطلاب المسجلة مش هتتأثر. متأكد؟`, confirmLabel: 'كمّل' });
+            if (!ok1) return;
+            const ok2 = await showConfirmModal({ title: 'تأكيد أخير', message: 'مفيش تراجع بعد الحذف. تحذف كل امتحاناتك دلوقتي؟', confirmLabel: 'أيوه، احذف الكل' });
+            if (!ok2) return;
             clearTimeout(examSyncTimer);
-            if (isDoctorLoggedIn && typeof window.fbSaveExam === 'function') {
-                try { for (const ex of exams) await window.fbSaveExam(ex); } catch (e) {}
+            let failed = 0;
+            for (const ex of mine) {
+                try { await window.fbDeleteExam(ex.id); } catch (e) { failed++; console.warn('delete failed', ex.id, e); }
             }
+            exams = [];
+            try { await loadDoctorExams(window.__myUid); } catch (e) {}
             populateDoctorWorkspace();
             populateStudentExamSelector();
             renderExcelTable();
-            showToast('تمت استعادة الامتحانات الافتراضية', 'success');
+            if (failed) showToast(`اتحذف جزء من الامتحانات، و${failed} منها ما اتحذفش — حاول تاني`, 'warning');
+            else showToast('تم حذف جميع امتحاناتك', 'success');
         }
 
         // =========================================================================
