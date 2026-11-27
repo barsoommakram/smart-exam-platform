@@ -1144,6 +1144,7 @@
         function switchTab(tabName) {
             const prev = window.__curTab;
             const finalTab = _switchTabCore(tabName);
+            if (finalTab !== 'admin') window.__adminUnlocked = false;
             window.__curTab = finalTab;
             // سجل المتصفح: التنقل بين التابات ما بيعملش مدخلات ولا بيلمس الرابط. مدخل واحد بس عند فتح شاشة دخول الدكتور/الطلب.
             try {
@@ -1163,10 +1164,12 @@
         });
 
         function _switchTabCore(tabName) {
+            // v28.34: تبويب الأدمن مقفول بكلمة سر الأدمن (إعادة تحقق حقيقية من Firebase) كل مرة بتفتحه
             if (tabName === 'student' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
             if (tabName === 'doctor-auth' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
             if (tabName === 'doctor' && !isDoctorLoggedIn) tabName = 'doctor-auth';
             if (tabName === 'admin' && !isAdminLoggedIn) tabName = 'doctor-auth';
+            if (tabName === 'admin' && !window.__adminUnlocked) { try { openAdminGate(); } catch (e) { console.warn('gate failed', e); } tabName = isDoctorLoggedIn ? 'reports' : 'doctor-auth'; }
             if ((tabName === 'reports' || tabName === 'email' || tabName === 'stats') && !isDoctorLoggedIn) tabName = 'doctor-auth';
             const views = ['student', 'doctor', 'doctor-auth', 'admin', 'stats', 'email', 'reports'];
             const viewToTab = { 'doctor-auth': 'doctor' };
@@ -2666,7 +2669,7 @@
             }
             showToast(isDoctorLoggedIn ? `معاينة امتحان "${exam.title}" انتهت — المعاينة لا تسجل أي تسليم.` : `تم تسليم امتحان "${exam.title}" بنجاح! تم تسجيل إجابتك في نظام التقييم.`, isDoctorLoggedIn ? 'info' : 'success');
             if (overlayData) showScoreOverlay(overlayData);
-            if (!ticketOk && exam.showScoreToStudent) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
+            if (!ticketOk && exam.showScoreToStudent && !local) setTimeout(() => showToast('تم حفظ إجاباتك، لكن تعذر تفعيل عرض الدرجة الفوري. الدكتور سيعتمد درجتك.', 'warning'), 800);
             if (ticketOk && exam.showScoreToStudent && !local && scoreWhy) setTimeout(() => showToast('الدرجة الفورية غير متاحة الآن: ' + scoreWhy + '. الدكتور سيعتمد درجتك.', 'warning'), 600);
         }
 
@@ -2772,8 +2775,28 @@
                 gradingReason: `تم تصحيح ${exam.questions.length} أسئلة (${exam.questions.filter(q => q.type === 'mcq').length} اختيارية بتصحيح فوري` + (aiUsed ? `، ${aiUsed} مقالي بالذكاء الاصطناعي` : '') + `) بناءً على مرجع "${exam.courseName}" ونموذج الإجابة المعتمد.`,
                 questionDetails: g.qDetails,
                 doctorDecision: status === 'سليم' ? 'معتمد' : 'قيد مراجعة الدكتور',
+                browserId: String(sub.uid || ''),
                 createdAtMs: Number(sub.createdAtMs) || Date.now()
             };
+        }
+
+        // تلميح: أكتر من طالب (أرقام جامعية مختلفة) سلّموا نفس الامتحان من نفس المتصفح (نفس الجلسة المجهولة). مش دليل: متصفح تاني أو وضع التخفي بيتخطاه
+        function browserCtx() {
+            const subUid = {};
+            (window.__submissions || []).forEach(s => { if (s && s._id) subUid[s._id] = s.uid; });
+            const g = {};
+            examRecords.forEach(r => { const u = r.browserId || subUid[r._fid]; if (!u) return; const k = r.examId + '|' + u; (g[k] = g[k] || new Map()).set(String(r.id), r.name); });
+            const keys = Object.keys(g).filter(k => g[k].size > 1).sort();
+            return { subUid, g, label: Object.fromEntries(keys.map((k, i) => [k, i + 1])) };
+        }
+        function browserFlag(rec, ctx) {
+            const u = rec.browserId || ctx.subUid[rec._fid];
+            if (!u) return null;
+            const k = rec.examId + '|' + u;
+            const m = ctx.g[k];
+            if (!m || m.size < 2) return null;
+            const others = [...m].filter(([id]) => id !== String(rec.id)).map(([id, n]) => n + ' (' + id + ')');
+            return { n: m.size, others, label: ctx.label[k] };
         }
 
         let procBusy = false;
@@ -2827,7 +2850,7 @@
             document.getElementById('res-exam-name').textContent = `${rec.examTitle} • ${rec.group}`;
             document.getElementById('res-score').textContent = `${rec.score} / ${rec.maxScore}`;
             document.getElementById('res-grading-reason').textContent = rec.gradingReason;
-            document.getElementById('res-integrity-reason').textContent = rec.alerts;
+            { const bf0 = browserFlag(rec, browserCtx()); document.getElementById('res-integrity-reason').textContent = rec.alerts + (bf0 ? ' | نفس المتصفح مع: ' + bf0.others.join('، ') + ' (تلميح مش دليل)' : ''); }
 
             const badge = document.getElementById('res-integrity-badge');
             if (rec.status === 'سليم') {
@@ -2860,8 +2883,10 @@
                 return;
             }
 
+            const bctx = browserCtx();
             list.forEach(rec => {
                 const realIdx = examRecords.indexOf(rec);
+                const bf = browserFlag(rec, bctx);
                 let badge = '';
                 if (rec.status === 'سليم') {
                     badge = `<span class="inline-flex items-center bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">سليم (${escapeHtml(rec.aiProb)}% AI)</span>`;
@@ -2877,6 +2902,7 @@
                     <td class="py-3.5 px-4">
                         <div class="font-bold text-slate-900">${escapeHtml(rec.name)} <span class="text-xs font-normal text-slate-500">(${escapeHtml(rec.id)})</span></div>
                         <div class="text-xs text-primary-700 font-semibold">${escapeHtml(rec.examTitle)}</div>
+                        ${bf ? `<div class="mt-1 inline-block bg-orange-100 text-orange-800 text-[11px] font-bold px-2 py-0.5 rounded-lg" title="${escapeHtml(bf.others.join('، '))}">🖥️ نفس المتصفح #${bf.label} (${bf.n} طلاب): ${escapeHtml(bf.others.join('، '))}</div>` : ''}
                     </td>
                     <td class="py-3.5 px-4 text-xs text-slate-600">${escapeHtml(rec.submitTime)}</td>
                     <td class="py-3.5 px-4 font-extrabold text-primary-700">${escapeHtml(rec.score)} / ${escapeHtml(rec.maxScore)}</td>
@@ -3239,7 +3265,8 @@
                 return;
             }
 
-            const summaryRows = list.map(r => ({
+            const bctxX = browserCtx();
+            const summaryRows = list.map(r => { const bfx = browserFlag(r, bctxX); return ({
                 'اسم الطالب': r.name,
                 'الرقم الجامعي': r.id,
                 'الفرقة / الشعبة': r.group,
@@ -3257,8 +3284,10 @@
                 'التنبيهات السلوكية واللغوية': r.alerts,
                 'ملخص التصحيح المرجعي': r.gradingReason,
                 'تعديل يدوي للدرجات': r.manualEdited ? 'نعم' : 'لا',
-                'قرار الدكتور': r.doctorDecision
-            }));
+                'قرار الدكتور': r.doctorDecision,
+                'نفس المتصفح (تلميح)': bfx ? ('نعم: ' + bfx.n + ' طلاب مع ' + bfx.others.join('، ')) : '',
+                'مجموعة المتصفح': bfx ? ('#' + bfx.label) : ''
+            }); });
 
             const detailRows = [];
             list.forEach(r => {
@@ -3281,7 +3310,7 @@
             wsSummary['!cols'] = [
                 { wch: 22 }, { wch: 15 }, { wch: 22 }, { wch: 28 }, { wch: 18 },
                 { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 15 },
-                { wch: 12 }, { wch: 14 }, { wch: 15 }, { wch: 18 }, { wch: 38 }, { wch: 38 }, { wch: 15 }, { wch: 18 }
+                { wch: 12 }, { wch: 14 }, { wch: 15 }, { wch: 18 }, { wch: 38 }, { wch: 38 }, { wch: 15 }, { wch: 18 }, { wch: 30 }, { wch: 14 }
             ];
 
             const wb = XLSX.utils.book_new();
@@ -3809,6 +3838,50 @@
         }
 
 
+
+        // ---------- v28.34: كلمة سر تبويب الأدمن ----------
+        function openAdminGate() {
+            if (document.getElementById('admin-gate-overlay')) return;
+            const ov = document.createElement('div');
+            ov.id = 'admin-gate-overlay';
+            ov.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm';
+            ov.innerHTML = `<div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 shadow-2xl space-y-3" role="dialog" aria-modal="true">
+                <h3 class="text-base font-extrabold text-slate-900">لوحة الأدمن</h3>
+                <p class="text-xs text-slate-500">اكتب كلمة سر حساب الأدمن عشان تفتح اللوحة.</p>
+                <input type="password" id="admin-gate-pass" dir="ltr" autocomplete="current-password" placeholder="كلمة السر" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <p id="admin-gate-err" class="hidden text-xs font-bold text-rose-600"></p>
+                <div class="flex gap-2">
+                    <button type="button" id="admin-gate-ok" class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">فتح</button>
+                    <button type="button" id="admin-gate-cancel" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition">إلغاء</button>
+                </div>
+            </div>`;
+            document.body.appendChild(ov);
+            const inp = document.getElementById('admin-gate-pass'), err = document.getElementById('admin-gate-err'), ok = document.getElementById('admin-gate-ok');
+            const close = () => { try { ov.remove(); } catch (e) {} };
+            let busy = false;
+            const submit = async () => {
+                if (busy) return;
+                const pass = inp.value;
+                if (!pass) { err.textContent = 'اكتب كلمة السر.'; err.classList.remove('hidden'); return; }
+                busy = true; ok.disabled = true; ok.textContent = 'جاري التحقق...'; err.classList.add('hidden');
+                try {
+                    await window.fbReauth(pass);
+                    window.__adminUnlocked = true;
+                    close();
+                    switchTab('admin');
+                } catch (e) {
+                    console.warn('admin gate failed', e);
+                    err.textContent = (typeof acctAuthError === 'function' && acctAuthError(e)) || 'ما اتحققش، جرّب تاني.';
+                    err.classList.remove('hidden');
+                    inp.value = ''; inp.focus();
+                } finally { busy = false; ok.disabled = false; ok.textContent = 'فتح'; }
+            };
+            ok.addEventListener('click', submit);
+            inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } if (ev.key === 'Escape') close(); });
+            document.getElementById('admin-gate-cancel').addEventListener('click', close);
+            setTimeout(() => { try { inp.focus(); } catch (e) {} }, 50);
+        }
+
         // ---------- v28.32: حسابي (تعديل + حذف) ----------
         let acctBusy = false;
         function fillAccountCard() {
@@ -4186,6 +4259,7 @@
             isAdminLoggedIn = false;
             window.doctorEmail = '';
             try { localStorage.removeItem('doctor_notify_email_v1'); localStorage.removeItem('doctor_notify_owner_v1'); const f1 = document.getElementById('doc-notify-email'); if (f1) f1.value = ''; } catch (e) {}
+            window.__adminUnlocked = false;
             window.__myUid = null;
             window.__myDoctorName = '';
             window.__myProfile = null;
