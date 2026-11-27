@@ -2908,12 +2908,16 @@
         async function gradeEssayWithAI(q, studentAnswer, bookContent) {
             if (!AI_GRADE_ENDPOINT || Date.now() < aiGradeDownUntil) return null;
             const maxScore = Number(q.maxScore) || 10;
+            // v28.46: الخادم بيقبل الأدمن أو الدكتور المعتمد بس، فبنبعت توكن دخول الدكتور. من غير توكن: تصحيح محلي مبدئي
+            let idToken = '';
+            try { idToken = (typeof window.fbIdToken === 'function') ? await window.fbIdToken() : ''; } catch (e) { idToken = ''; }
+            if (!idToken) return null;
             const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
             const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (e) {} }, AI_GRADE_TIMEOUT_MS);
             try {
                 const res = await fetch(AI_GRADE_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
                     body: JSON.stringify({
                         question: String(q.text || ''),
                         modelAnswer: String(q.modelAnswer || ''),
@@ -4899,6 +4903,7 @@
         });
         window.fbMakeTicket = (examId, subId, uid) => setDoc(doc(fbDb, 'tickets', examId + '_' + uid), { examId: examId, subId: subId, createdAtMs: Date.now() });
         window.fbGetSubmission = async (id) => { const s = await getDoc(doc(fbDb, 'submissions', id)); return s.exists() ? s.data() : null; };
+        window.fbIdToken = async () => { const u = fbAuth.currentUser; return (u && !u.isAnonymous) ? u.getIdToken() : ''; };
         window.fbGetReveal = async (examId) => { const s = await getDoc(doc(fbDb, 'examReveal', examId)); return s.exists() ? s.data() : null; };
         window.fbResetExamSubs = async (examId) => {
             const c = (await getCountFromServer(query(collection(fbDb, 'submissions'), where('doctorUid', '==', window.__myUid), where('examId', '==', examId)))).data().count;
