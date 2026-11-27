@@ -555,6 +555,7 @@
 
                 <!-- طلب حساب جديد (يظهر بالزرار) -->
                 <div id="dauth-request-card" class="hidden bg-white rounded-2xl border-2 border-primary-500/30 p-6 shadow-md space-y-4">
+                    <p id="dauth-reject-note" class="hidden text-xs font-bold text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200 leading-relaxed"></p>
                     <button type="button" onclick="switchTab('student')" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3 py-1.5 transition">
                         <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i><span>رجوع للطلاب</span>
                     </button>
@@ -632,7 +633,7 @@
                 </div>
                 <div id="adm-pending-list" class="space-y-2.5"></div>
                 <p id="adm-pending-empty" class="text-xs text-slate-400 text-center py-3">مفيش طلبات مستنية حالياً.</p>
-                <p class="text-[11px] text-slate-400">قبول = الحساب يشتغل فورا، رفض = الطلب يتمسح وميقدرش يدخل.</p>
+                <p class="text-[11px] text-slate-400">قبول = الحساب يشتغل فورا، رفض = الطلب يتمسح وصاحبه يشوف رسالة الرفض (والسبب) أول ما يفتح الموقع.</p>
             </div>
 
             <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
@@ -3525,14 +3526,17 @@
             btn.disabled = true;
             try {
                 const st = await window.fbCreateDoctorRequest({ name, email, username, password: pass, existingUid: window.__signedInNoProfileUid || null });
-                showToast(st === 'approved' ? 'تم قبول حسابك — تقدر تسجل دخول دلوقتي' : 'تم إرسال طلبك للأدمن — هتقدر تدخل أول ما يوافق', 'success');
+                showToast(st === 'approved' ? 'تم قبول حسابك تلقائيًا — تقدر تسجل دخول دلوقتي' : 'تم إرسال طلبك للأدمن — هتقدر تدخل أول ما يوافق', 'success');
                 ['req-name', 'req-email', 'req-username', 'req-password'].forEach(i => { document.getElementById(i).value = ''; });
                 window.__signedInNoProfileUid = null;
                 showRequestForm(false);
-                switchTab('student');
+                switchTab('doctor-auth');
+                setBox('dauth-error', '');
+                setBox('dauth-info', st === 'approved' ? 'تم قبول حسابك تلقائيًا. سجّل دخول بالاسم وكلمة السر اللي اخترتهم.' : 'طلبك اتبعت للأدمن. هتقدر تدخل أول ما يوافق عليه.');
+                try { const du = document.getElementById('dauth-username'); if (du && username) du.value = username; } catch (x) {}
             } catch (e) {
                 const code = (e && e.code) || '';
-                if (code === 'app/requests-closed') fail('استقبال طلبات انضمام جديدة مقفول حاليًا. تواصل مع الأدمن.');
+                if (code === 'app/requests-closed') fail('طلبك اتحذف تلقائيًا ومااتسجلش: استقبال طلبات الانضمام الجديدة مقفول حاليًا. تواصل مع الأدمن.');
                 else if (code === 'app/username-taken') fail('اسم المستخدم ده محجوز، اختار اسم تاني.');
                 else if (code === 'auth/email-already-in-use') fail('اسم المستخدم أو الإيميل ده مرتبط بحساب قديم. لو ده حسابك سجل دخول بيه من شاشة الدخول وابعت طلب جديد من هناك.');
                 else if (code === 'permission-denied' || /permission/i.test(String(e))) fail('تعذر تسجيل الطلب. ممكن يكون الاسم محجوز أو الطلب اتسجل قبل كده.');
@@ -3670,10 +3674,10 @@
         async function deleteAllRequests() {
             const pending = (window.__adminDoctors || []).filter(d => d.status !== 'approved');
             if (!pending.length) { showToast('مفيش طلبات مستنية', 'info'); return; }
-            const ok = await showConfirmModal({ title: 'حذف كل الطلبات', message: `هتتحذف ${pending.length} طلب نهائيًا، وأصحابها مش هيقدروا يدخلوا. الدكاترة المعتمدين ما بيتأثروش. متأكد؟`, confirmLabel: 'احذف الكل' });
-            if (!ok) return;
+            const reasonAll = await askRejectReason('حذف كل الطلبات', `هتتحذف ${pending.length} طلب، وأصحابها هيشوفوا رسالة الرفض (والسبب لو كتبته). الدكاترة المعتمدين ما بيتأثروش.`);
+            if (reasonAll === null) return;
             let done = 0, failed = 0;
-            for (const d of pending) { try { await window.fbRejectDoctor(d.uid); done++; } catch (e) { failed++; } }
+            for (const d of pending) { try { await window.fbRejectDoctor(d.uid, reasonAll); done++; } catch (e) { failed++; } }
             showToast(failed ? `اتحذف ${done} وفشل ${failed}` : `تم حذف ${done} طلب`, failed ? 'warning' : 'info');
             loadAdminPanel();
         }
@@ -3753,10 +3757,31 @@
             catch (e) { showToast('تعذر القبول — حاول تاني', 'danger'); }
         }
 
+
+        // v28.35: مربع سبب الرفض (اختياري). بيرجع null لو اتلغى، أو النص (ممكن فاضي)
+        function askRejectReason(title, lead) {
+            return new Promise(resolve => {
+                const ov = document.createElement('div');
+                ov.className = 'fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm';
+                ov.innerHTML = `<div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-6 shadow-2xl space-y-3" role="dialog" aria-modal="true">
+                    <h3 class="text-base font-extrabold text-slate-900"></h3>
+                    <p class="text-xs text-slate-500 leading-relaxed"></p>
+                    <textarea id="rej-reason" rows="3" maxlength="300" placeholder="سبب الرفض (اختياري، هيظهر لصاحب الطلب)" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500"></textarea>
+                    <div class="flex gap-2">
+                        <button type="button" id="rej-ok" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition">رفض</button>
+                        <button type="button" id="rej-cancel" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs transition">إلغاء</button>
+                    </div></div>`;
+                ov.querySelector('h3').textContent = title; ov.querySelector('p').textContent = lead;
+                document.body.appendChild(ov);
+                const done = v => { try { ov.remove(); } catch (e) {} resolve(v); };
+                ov.querySelector('#rej-ok').addEventListener('click', () => done(ov.querySelector('#rej-reason').value.trim()));
+                ov.querySelector('#rej-cancel').addEventListener('click', () => done(null));
+            });
+        }
         async function rejectDoctorRequest(uid) {
-            const ok = await showConfirmModal({ title: 'رفض الطلب', message: 'الطلب هيترفض ويتمسح، وصاحبه مش هيقدر يدخل. متأكد؟', confirmLabel: 'رفض الطلب' });
-            if (!ok) return;
-            try { await window.fbRejectDoctor(uid); showToast('تم رفض الطلب', 'info'); loadAdminPanel(); }
+            const reason = await askRejectReason('رفض الطلب', 'الطلب هيتمسح، وصاحبه هيشوف رسالة الرفض (والسبب لو كتبته) أول ما يفتح الموقع أو يسجل دخول.');
+            if (reason === null) return;
+            try { await window.fbRejectDoctor(uid, reason); showToast('تم رفض الطلب', 'info'); loadAdminPanel(); }
             catch (e) { showToast('تعذر الرفض — حاول تاني', 'danger'); }
         }
 
@@ -4192,9 +4217,15 @@
             }
             // حساب موجود بلا ملف دكتور (حساب قديم): يكمل طلب الانضمام
             window.__signedInNoProfileUid = user.uid;
+            const rj = await window.fbGetRejection(user.uid);
             switchTab('doctor-auth');
             showRequestForm(true);
-            showToast('الحساب ده لسه معملش طلب انضمام — اكتب اسمك وابعت الطلب للأدمن', 'info');
+            const rn = document.getElementById('dauth-reject-note');
+            if (rn) {
+                rn.classList.toggle('hidden', !rj);
+                rn.textContent = rj ? ('تم رفض طلب انضمامك.' + (rj.reason ? ' السبب: ' + rj.reason : '') + ' تقدر تبعت طلب جديد من تحت.') : '';
+            }
+            if (!rj) showToast('الحساب ده لسه معملش طلب انضمام — اكتب اسمك وابعت الطلب للأدمن', 'info');
         }
 
         window.fbRefreshSession = () => handleAuthUser(fbAuth.currentUser);
@@ -4521,6 +4552,7 @@
                 try { const us = await getDoc(doc(fbDb, 'usernames', uname)); if (us.exists()) needUname = false; } catch (e) {}
                 if (needUname) b0.set(doc(fbDb, 'usernames', uname), { email: authMail, uid: existingUid });
                 await b0.commit();
+                try { window.fbClearRejection(existingUid); } catch (x) {}
                 if (prof0.status === 'approved') { try { await setDoc(doc(fbDb, 'publicDoctors', existingUid), { name }); } catch (e) {} }
                 if (prof0.status === 'approved' && realMail && typeof window.sendApprovalEmail === 'function') { window.sendApprovalEmail(realMail, name); }
                 await signOut(fbAuth);
@@ -4586,12 +4618,13 @@
             await b.commit();
             if (!wasApproved && uid !== window.__myUid && s.exists() && s.data().email && typeof window.sendApprovalEmail === 'function') { window.sendApprovalEmail(s.data().email, s.data().name); }
         };
-        window.fbRejectDoctor = async (uid) => {
-            const s = await getDoc(doc(fbDb, 'doctors', uid));
-            const uname = s.exists() ? s.data().username : null;
+        // v28.35: الرفض بيسيب إشعار (rejections/<uid>) فيه السبب، عشان صاحب الطلب يشوفه في الصفحة أول ما يفتح الموقع أو يسجل دخول. اسم المستخدم بيفضل عشان يقدر يدخل ويشوف الرسالة
+        window.fbRejectDoctor = async (uid, reason) => {
+            try { await setDoc(doc(fbDb, 'rejections', uid), { reason: String(reason || '').trim().slice(0, 300), atMs: Date.now() }); } catch (e) { console.warn('rejection notice failed (publish the new rules)', e); }
             await deleteDoc(doc(fbDb, 'doctors', uid));
-            if (uname) { try { await deleteDoc(doc(fbDb, 'usernames', uname)); } catch (e) {} }
         };
+        window.fbGetRejection = async (uid) => { try { const s = await getDoc(doc(fbDb, 'rejections', uid)); return s.exists() ? s.data() : null; } catch (e) { return null; } };
+        window.fbClearRejection = (uid) => deleteDoc(doc(fbDb, 'rejections', uid)).catch(() => {});
         window.fbSetDoctorFrozen = (uid, frozen) => updateDoc(doc(fbDb, 'doctors', uid), { frozen: !!frozen });
         window.fbSetDoctorLimits = async (uid, maxExams, maxSubs) => {
             const b = writeBatch(fbDb);
