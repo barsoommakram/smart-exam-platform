@@ -1129,7 +1129,7 @@
             }
             // على شاشة دخول الدكتور: نخفي تبويب الطالب (الشعار هو الرجوع)
             const stuTab = document.getElementById('tab-student');
-            if (stuTab) stuTab.classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn || tabName === 'doctor-auth');
+            if (stuTab) stuTab.classList.toggle('hidden', isDoctorLoggedIn || isAdminLoggedIn);
             syncNavVisibility();
             if (tabName === 'doctor-auth') showRequestForm(!!window.__signedInNoProfileUid);
             if (tabName === 'student') { loadApprovedDoctors(); populateStudentExamSelector(); }
@@ -1218,12 +1218,12 @@
             syncNavVisibility();
         }
 
-        // شريط التبويبات يظهر بس لو فيه تبويب غير "بوابة الطالب" (يعني بعد دخول دكتور/أدمن)
+        // شريط التبويبات يظهر لو فيه أي تبويب ظاهر (قبل الدخول: بوابة الطالب بس)
         function syncNavVisibility() {
             const nav = document.querySelector('nav.flex.items-center.bg-slate-100');
             if (!nav) return;
-            const anyOther = Array.from(nav.querySelectorAll('button.nav-btn')).some(b => b.id !== 'tab-student' && !b.classList.contains('hidden'));
-            nav.classList.toggle('hidden', !anyOther);
+            const anyVisible = Array.from(nav.querySelectorAll('button.nav-btn')).some(b => !b.classList.contains('hidden'));
+            nav.classList.toggle('hidden', !anyVisible);
         }
 
         // =========================================================================
