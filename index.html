@@ -43,15 +43,21 @@
         #score-overlay .so-c{fill:rgba(11,15,25,.7);stroke:#22d3ee;stroke-width:3}
         #score-overlay .so-svg .tr{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1}
         #score-overlay .so-svg .nd{opacity:0;fill:#67e8f9}
-        #score-overlay.so-done .so-svg .tr{animation:so-draw .9s cubic-bezier(.65,0,.35,1) forwards}
-        #score-overlay.so-done .so-svg .nd{animation:so-nd .3s .8s forwards}
+        #score-overlay.so-done .so-svg .tr{animation:so-draw .9s cubic-bezier(.65,0,.35,1) forwards,so-glow 2.8s 1s ease-in-out infinite alternate}
+        #score-overlay.so-done .so-svg g:nth-child(even) .tr{animation-delay:0s,1.7s}
+        #score-overlay.so-done .so-svg .nd{animation:so-nd .3s .8s forwards,so-blink 1.8s 1.2s ease-in-out infinite alternate}
+        #score-overlay.so-done .so-svg g:nth-child(3n+2) .nd{animation-delay:.8s,1.7s}
+        #score-overlay.so-done .so-svg g:nth-child(3n) .nd{animation-delay:.8s,2.2s}
+        #score-overlay .so-ring{fill:none;stroke:#22d3ee;stroke-opacity:.35;stroke-width:1.5;stroke-dasharray:3 9;transform-box:fill-box;transform-origin:center;animation:so-spin 26s linear infinite}
+        @keyframes so-glow{from{opacity:.55}to{opacity:1}}
+        @keyframes so-blink{from{opacity:.35}to{opacity:1}}
         #score-overlay.so-wait .so-svg .tr{stroke-dashoffset:.45;animation:so-pulse 1.3s ease-in-out infinite alternate}
         #score-overlay.so-wait .so-c{stroke-dasharray:14 10;transform-box:fill-box;transform-origin:center;animation:so-spin 3.5s linear infinite}
         @keyframes so-draw{to{stroke-dashoffset:0}}
         @keyframes so-nd{to{opacity:1}}
         @keyframes so-pulse{from{opacity:.35}to{opacity:1}}
         @keyframes so-spin{to{transform:rotate(360deg)}}
-        @media (prefers-reduced-motion: reduce){#score-overlay .so-svg .tr,#score-overlay .so-svg .nd,#score-overlay .so-c{animation:none!important}#score-overlay.so-done .so-svg .tr{stroke-dashoffset:0}#score-overlay.so-done .so-svg .nd{opacity:1}#score-overlay.so-wait .so-svg .tr{stroke-dashoffset:0;opacity:.6}}
+        @media (prefers-reduced-motion: reduce){#score-overlay .so-ring,#score-overlay .so-svg .tr,#score-overlay .so-svg .nd,#score-overlay .so-c{animation:none!important}#score-overlay.so-done .so-svg .tr{stroke-dashoffset:0}#score-overlay.so-done .so-svg .nd{opacity:1}#score-overlay.so-wait .so-svg .tr{stroke-dashoffset:0;opacity:.6}}
         #score-overlay .so-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 22%}
         #so-score{font-size:30px;font-weight:800;color:#67e8f9;text-shadow:0 0 12px rgba(34,211,238,.85);direction:ltr;line-height:1.2}
         #so-sub{font-size:12px;font-weight:700;color:#34d399;text-shadow:0 0 8px rgba(52,211,153,.6);margin-top:4px}
@@ -2625,7 +2631,7 @@
         // الطالب يرسل إجاباته الخام فقط. الدرجة الرسمية تُحسب في صفحة الدكتور.
         function _soBuildSvg() {
             const svg = document.getElementById('so-svg'); if (!svg || svg.childElementCount) return;
-            let h = '<circle class="so-c" cx="0" cy="0" r="70"/>';
+            let h = '<circle class="so-ring" cx="0" cy="0" r="75"/><circle class="so-c" cx="0" cy="0" r="70"/>';
             for (let k = 0; k < 12; k++) {
                 const col = k % 2 ? '#34d399' : '#22d3ee';
                 h += '<g transform="rotate(' + (k * 30) + ')"><path class="tr" pathLength="1" stroke="' + col + '" d="M78 0 H102 L114 11 H140"/><circle class="nd" cx="140" cy="11" r="3.5"/></g>';
@@ -2750,7 +2756,11 @@
 
             document.getElementById('student-exam-room').classList.add('hidden');
             document.getElementById('student-exam-room').classList.remove('grid');
-            document.getElementById('grading-loader').classList.remove('hidden');
+            // v28.44: لو الدرجة أو المراجعة مفعّلة، الدايرة (جاري التصحيح) هي أول حاجة تظهر بعد التسليم، من غير أي شاشة قبلها
+            const reviewMode = (exam.reviewMode === 'marks' || exam.reviewMode === 'answers') ? exam.reviewMode : 'none';
+            const needScore = !!exam.showScoreToStudent || reviewMode !== 'none';
+            if (needScore) showScoreWaiting();
+            else document.getElementById('grading-loader').classList.remove('hidden');
             setLoaderStep('جاري إرسال إجاباتك بأمان...');
 
             // الإجابات الخام: مقالي = نص، اختيار من متعدد = رقم الخيار الأصلي (أو -1)
@@ -2813,7 +2823,7 @@
             }
             if (!saved && failKind === 'taken') {
                 // التسليم موجود بالفعل لنفس الرقم الجامعي: ننهي الجلسة بدل ما نعلّق الطالب
-                document.getElementById('grading-loader').classList.add('hidden');
+                document.getElementById('grading-loader').classList.add('hidden'); closeScoreOverlay();
                 document.getElementById('student-login-card').classList.remove('hidden');
                 sessionState.submitting = false;
                 showToast('تم تسجيل تسليم سابق لهذا الرقم الجامعي في هذا الامتحان — لا يمكن التسليم مرتين. راجع الدكتور لو فيه خطأ.', 'danger');
@@ -2821,7 +2831,7 @@
             }
             if (!saved) {
                 // لم يصل التسليم: نعيد الامتحان للطالب ليعيد المحاولة بدون فقدان إجاباته
-                document.getElementById('grading-loader').classList.add('hidden');
+                document.getElementById('grading-loader').classList.add('hidden'); closeScoreOverlay();
                 const room = document.getElementById('student-exam-room');
                 room.classList.remove('hidden'); room.classList.add('grid');
                 sessionState.active = true;
@@ -2839,9 +2849,6 @@
                 else showToast('تعذر تسليم الإجابات (تحقق من الإنترنت). إجاباتك ما زالت محفوظة، اضغط تسليم مرة أخرى.', 'danger');
                 return;
             }
-            const reviewMode = (exam.reviewMode === 'marks' || exam.reviewMode === 'answers') ? exam.reviewMode : 'none';
-            const needScore = !!exam.showScoreToStudent || reviewMode !== 'none';
-            if (needScore) { document.getElementById('grading-loader').classList.add('hidden'); showScoreWaiting(); }
             setLoaderStep('تم الإرسال، جاري تجهيز الدرجة...');
             let ticketOk = true;
             try { if (!isDoctorLoggedIn && uid && typeof window.fbMakeTicket === 'function') await withTimeout(window.fbMakeTicket(exam.id, subId, uid), 10000); } catch (e) { ticketOk = false; console.warn('ticket failed', e); }
@@ -2965,6 +2972,7 @@
             if (pasteCount > 0) reasons.push(`لصق (${pasteCount})`);
             if (tabSwitches > 0) reasons.push(`تبديل تبويب (${tabSwitches})`);
             if (fullscreenExits > 0) reasons.push(`خروج من ملء الشاشة (${fullscreenExits})`);
+            { const awayS = Math.round((Number(sub.awayMs) || 0) / 1000); if (awayS >= 5) reasons.push(`وقت خارج الامتحان ${fmtAway(awayS * 1000)}`); }
             if (wpm > 95) reasons.push(`سرعة كتابة مرتفعة (${wpm} ك/د)`);
             if (bigJumps > 0) reasons.push(`إضافة نص كبير دفعة واحدة (${bigJumps})`);
             writing.signals.forEach(s => reasons.push(s));
@@ -3277,7 +3285,7 @@
                     }
                     el.innerHTML = inner;
                 });
-            } catch (e) { setAll('تعذر تحميل إجابات الطالب (' + ((e && e.code) || 'error') + ').'); }
+            } catch (e) { if (e && e.code === 'permission-denied') { setAll('إجابات الطالب مش متاحة لهذا السجل.'); return; } setAll('تعذر تحميل إجابات الطالب (' + ((e && e.code) || 'error') + ').'); }
         }
 
         function cancelGradeEditor() {
