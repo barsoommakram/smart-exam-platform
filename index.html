@@ -168,6 +168,14 @@
         html body input:not(#_), html body textarea:not(#_), html body select:not(#_) { background-color: #0d1526; color: #e2e8f0; }
         input::placeholder, textarea::placeholder { color: #64748b; }
     </style>
+<style>
+.tgl,input.tgl[type=checkbox]{appearance:none!important;-webkit-appearance:none!important;position:relative;flex:none;width:34px!important;height:20px!important;border-radius:9999px;background:#475569!important;border:0!important;padding:0!important;cursor:pointer;outline:none;transition:background .2s;margin:0}
+.tgl::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .2s}
+.tgl:checked::after{transform:translateX(14px)}
+.tgl.tgl-green:checked{background:#10b981!important}
+.tgl.tgl-red:checked{background:#f43f5e!important}
+.tgl:focus-visible{box-shadow:0 0 0 2px rgba(99,102,241,.6)}
+</style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
@@ -595,14 +603,14 @@
                     <button onclick="approveAllRequests()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5"><i data-lucide="check-check" class="w-4 h-4"></i><span>قبول كل الطلبات</span></button>
                     <button onclick="deleteAllRequests()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5"><i data-lucide="trash-2" class="w-4 h-4"></i><span>حذف كل الطلبات</span></button>
                 </div>
-                <div class="space-y-2.5">
-                    <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer">
-                        <span class="text-sm font-bold text-slate-800">قبول الطلبات القادمة تلقائيًا</span>
-                        <input type="checkbox" id="mode-accept" onchange="onRequestsModeToggle('accept', this.checked)" class="w-5 h-5 accent-emerald-600">
+                <div class="flex flex-wrap gap-2">
+                    <label class="inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-slate-50/60 pl-3 pr-4 py-1.5 cursor-pointer select-none">
+                        <span class="text-xs font-bold text-slate-800">قبول الطلبات القادمة تلقائيًا</span>
+                        <input type="checkbox" id="mode-accept" role="switch" onchange="onRequestsModeToggle('accept', this.checked)" class="tgl tgl-green">
                     </label>
-                    <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 cursor-pointer">
-                        <span class="text-sm font-bold text-slate-800">حذف الطلبات القادمة تلقائيًا</span>
-                        <input type="checkbox" id="mode-delete" onchange="onRequestsModeToggle('delete', this.checked)" class="w-5 h-5 accent-rose-600">
+                    <label class="inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-slate-50/60 pl-3 pr-4 py-1.5 cursor-pointer select-none">
+                        <span class="text-xs font-bold text-slate-800">حذف الطلبات القادمة تلقائيًا</span>
+                        <input type="checkbox" id="mode-delete" role="switch" onchange="onRequestsModeToggle('delete', this.checked)" class="tgl tgl-red">
                     </label>
                 </div>
                 <div id="mode-warn-accept" class="hidden rounded-xl border-2 border-rose-500 bg-rose-50 p-3 text-xs font-bold text-rose-700 leading-relaxed">تحذير: القبول التلقائي شغال. أي شخص يفتح صفحة الطلب هيبقى دكتور معتمد فورًا ويقدر ينشئ امتحانات. اقفله أول ما تخلص.</div>
@@ -3854,10 +3862,30 @@
             const isAdm = !!(adminSnap && adminSnap.exists());
             const prof = (docSnap && docSnap.exists()) ? docSnap.data() : null;
 
-            if (isAdm) { await enterSession(user, true, (prof && prof.status === 'approved') ? prof : null); return; }
+            if (isAdm) {
+                // الأدمن بيبقى دكتور معتمد تلقائيًا (من غير ما يقبل نفسه): كل أدوات الدكتور على امتحاناته هو
+                let myProf = (prof && prof.status === 'approved') ? prof : null;
+                if (!myProf) {
+                    try {
+                        const nm = (prof && prof.name) || (user.displayName || (user.email || '').split('@')[0] || 'الأدمن').trim();
+                        if (!prof) {
+                            const un = ((user.email || '').split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase() || 'admin').slice(0, 30);
+                            const np = { name: nm, username: un, status: 'pending', createdAtMs: Date.now() };
+                            if (user.email) np.email = user.email;
+                            await setDoc(doc(fbDb, 'doctors', user.uid), np);
+                        }
+                        await window.fbApproveDoctor(user.uid);
+                        const again = await getDoc(doc(fbDb, 'doctors', user.uid));
+                        if (again.exists() && again.data().status === 'approved') myProf = again.data();
+                    } catch (e) { console.warn('admin auto-doctor failed', e); }
+                }
+                await enterSession(user, true, myProf);
+                return;
+            }
             if (prof && prof.status === 'approved') { await enterSession(user, false, prof); return; }
             if (prof) {
-                showToast('طلبك لسه قيد المراجعة — هتقدر تدخل بعد موافقة الأدمن', 'warning');
+                // طلب معلّق: ممنوع يدخل نهائيًا. نخرّجه فورًا ونظهر الرسالة ثابتة في كارت الدخول
+                window.__pendingNotice = true;
                 try { await signOut(fbAuth); } catch (e) {}
                 return;
             }
@@ -3940,7 +3968,14 @@
             wipeDoctorEditor();
             updateDoctorAuthUI();
             updateFrozenBanner();
-            switchTab('student');
+            if (window.__pendingNotice) {
+                window.__pendingNotice = false;
+                showRequestForm(false);
+                switchTab('doctor-auth');
+                setBox('dauth-error', 'طلبك لم تتم الموافقة عليه بعد');
+            } else {
+                switchTab('student');
+            }
             loadApprovedDoctors();
         }
 
