@@ -497,6 +497,9 @@
             <div class="max-w-md mx-auto">
                 <!-- تسجيل الدخول (الافتراضي) -->
                 <div id="dauth-login-card" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                    <button type="button" onclick="switchTab('student')" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3 py-1.5 transition">
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i><span>رجوع للطلاب</span>
+                    </button>
                     <div class="text-center mb-1">
                         <div class="w-12 h-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-2.5 border border-primary-100">
                             <i data-lucide="key-round" class="w-6 h-6"></i>
@@ -524,6 +527,9 @@
 
                 <!-- طلب حساب جديد (يظهر بالزرار) -->
                 <div id="dauth-request-card" class="hidden bg-white rounded-2xl border-2 border-primary-500/30 p-6 shadow-md space-y-4">
+                    <button type="button" onclick="switchTab('student')" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-primary-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg px-3 py-1.5 transition">
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i><span>رجوع للطلاب</span>
+                    </button>
                     <div class="text-center mb-1">
                         <div class="w-12 h-12 bg-primary-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-primary-600/20">
                             <i data-lucide="user-plus" class="w-6 h-6"></i>
@@ -3273,6 +3279,19 @@
                 await window.doctorSignIn(email, pass);
                 document.getElementById('dauth-password').value = '';
             } catch (e) {
+                // اسم مستخدم مش متسجل (مفيش usernames/<اسم>) وتسجيل الدخول فشل: نفتح نموذج التسجيل الكامل ومعبّي اللي كتبه
+                let unknown = false;
+                try {
+                    const u = input.toLowerCase();
+                    if (!u.includes('@') && /^[a-z0-9_]{3,30}$/.test(u) && typeof window.fbUsernameExists === 'function') unknown = !(await window.fbUsernameExists(u));
+                } catch (e2) {}
+                if (unknown) {
+                    showRequestForm(true);
+                    document.getElementById('req-username').value = input.toLowerCase();
+                    document.getElementById('req-password').value = pass;
+                    showToast('اسم المستخدم ده مش مسجل. كمّل بياناتك وابعت طلب إنشاء حساب (لو ده حساب قديم وغلطت في كلمة المرور ارجع وجرب تاني).', 'info');
+                    return;
+                }
                 setBox('dauth-error', 'اسم المستخدم أو كلمة المرور غير صحيحة.');
             }
         }
@@ -3640,7 +3659,7 @@
         // ربط Firebase: Firestore للامتحانات والنتائج + Firebase Auth لدخول الدكتور
         // =========================================================================
         import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInAnonymously, signOut, onAuthStateChanged, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
         import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, updateDoc, onSnapshot, runTransaction, query, where, writeBatch, getCountFromServer, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -3995,11 +4014,23 @@
             return s.exists() ? (s.data().email || null) : null;
         };
         window.fbSendReset = (email) => sendPasswordResetEmail(fbAuth, email);
+        window.fbUsernameExists = async (username) => (await getDoc(doc(fbDb, 'usernames', username))).exists();
 
         window.fbCreateDoctorRequest = async ({ name, email, username, password, existingUid }) => {
             if (existingUid && fbAuth.currentUser && fbAuth.currentUser.uid === existingUid) {
-                const uname = (fbAuth.currentUser.email || '').replace(/@doctor\.local$/i, '') || username;
-                await setDoc(doc(fbDb, 'doctors', existingUid), { name, username: uname, status: 'pending', createdAtMs: Date.now() });
+                const authMail = (fbAuth.currentUser.email || '').toLowerCase();
+                const realMail = authMail && !/@doctor\.local$/i.test(authMail) ? authMail : '';
+                let uname = authMail.replace(/@doctor\.local$/i, '');
+                if (realMail) uname = (username || '').trim().toLowerCase() || authMail.split('@')[0].replace(/[^a-z0-9_]/g, '_').slice(0, 30);
+                if (!uname) uname = username;
+                const b0 = writeBatch(fbDb);
+                const prof0 = { name, username: uname, status: 'pending', createdAtMs: Date.now() };
+                if (realMail) prof0.email = realMail;
+                b0.set(doc(fbDb, 'doctors', existingUid), prof0);
+                let needUname = true;
+                try { const us = await getDoc(doc(fbDb, 'usernames', uname)); if (us.exists()) needUname = false; } catch (e) {}
+                if (needUname) b0.set(doc(fbDb, 'usernames', uname), { email: authMail, uid: existingUid });
+                await b0.commit();
                 await signOut(fbAuth);
                 return;
             }
@@ -4016,7 +4047,13 @@
                 if (email) profile.email = email;
                 b.set(doc(sdb, 'doctors', cred.user.uid), profile);
                 b.set(doc(sdb, 'usernames', username), { email: authEmail, uid: cred.user.uid });
-                await b.commit();
+                try {
+                    await b.commit();
+                } catch (commitErr) {
+                    // فشلت كتابة الطلب: نمسح حساب الدخول اللي اتعمل عشان ما يتبقاش حساب يتيم
+                    try { await deleteUser(cred.user); } catch (delErr) { console.warn('orphan cleanup failed', delErr); }
+                    throw commitErr;
+                }
                 await signOut(secAuth);
             } finally {
                 try { await deleteApp(secondary); } catch (e) {}
