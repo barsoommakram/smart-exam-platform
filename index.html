@@ -197,6 +197,29 @@
         html body .border-primary-500\/30 { border-color: rgba(99, 102, 241, 0.45); }
         html body input:not(#_), html body textarea:not(#_), html body select:not(#_) { background-color: #0d1526; color: #e2e8f0; }
         input::placeholder, textarea::placeholder { color: #64748b; }
+
+        /* v28.47: الموبايل الصغير: التبويبات تلف على صفوف وتملا العرض، والجداول تتضغط عشان الصفحة ماتتعداش عرض الشاشة */
+        @media (max-width: 639px) {
+            html body header nav { width: 100%; flex-wrap: wrap; justify-content: stretch; gap: 2px; }
+            html body header nav .nav-btn { flex: 1 1 30%; justify-content: center; padding: 0.5rem 0.25rem; font-size: 11px; min-width: 0; white-space: nowrap; }
+            #excel-table-body td, #excel-table-body + * , table.w-full th { padding-left: 4px; padding-right: 4px; }
+            #excel-table-body td { padding: 8px 4px; font-size: 11px; word-break: break-word; }
+            #excel-table-body td:last-child { min-width: 0; }
+            #excel-table-body select { max-width: 74px; font-size: 10px; padding: 3px 2px; }
+            #excel-table-body button { font-size: 10px; padding: 3px 6px; }
+            #excel-table-body td span { font-size: 10px; padding-left: 4px; padding-right: 4px; }
+            table.w-full th { font-size: 10px; }
+            #toast-container { max-width: calc(100vw - 24px); }
+            @media (max-width: 340px) {
+                #excel-table-body td { font-size: 9px; padding-left: 2px; padding-right: 2px; }
+                #excel-table-body select { max-width: 48px; font-size: 9px; padding: 2px 0; }
+                #excel-table-body td span { font-size: 9px; padding-left: 4px; padding-right: 4px; white-space: normal; }
+                table.w-full th { font-size: 8.5px; padding-left: 2px; padding-right: 2px; }
+                main.max-w-7xl { padding-left: 8px !important; padding-right: 8px !important; }
+            }
+            #toast-container > div { max-width: 100%; }
+            table.w-full th { padding: 8px 6px; font-size: 10px; }
+        }
     </style>
 <style>
 .tgl,input.tgl[type=checkbox]{appearance:none!important;-webkit-appearance:none!important;position:relative;flex:none;width:34px!important;height:20px!important;border-radius:9999px;background:#475569!important;border:0!important;padding:0!important;cursor:pointer;outline:none;transition:background .2s;margin:0}
@@ -1209,11 +1232,11 @@
 
         function _switchTabCore(tabName) {
             // v28.34: تبويب الأدمن مقفول بكلمة سر الأدمن (إعادة تحقق حقيقية من Firebase) كل مرة بتفتحه
-            if (tabName === 'student' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
-            if (tabName === 'doctor-auth' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = isAdminLoggedIn ? 'admin' : 'reports';
+            if (tabName === 'student' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = 'reports';
+            if (tabName === 'doctor-auth' && (isDoctorLoggedIn || isAdminLoggedIn)) tabName = 'reports';
             if (tabName === 'doctor' && !isDoctorLoggedIn) tabName = 'doctor-auth';
             if (tabName === 'admin' && !isAdminLoggedIn) tabName = 'doctor-auth';
-            if (tabName === 'admin' && !window.__adminUnlocked) { try { openAdminGate(); } catch (e) { console.warn('gate failed', e); } tabName = isDoctorLoggedIn ? 'reports' : 'doctor-auth'; }
+            if (tabName === 'admin' && !window.__adminUnlocked) { if (window.__autoNav !== true) { try { openAdminGate(); } catch (e) { console.warn('gate failed', e); } } tabName = isDoctorLoggedIn ? 'reports' : 'doctor-auth'; }
             if ((tabName === 'reports' || tabName === 'email' || tabName === 'stats') && !isDoctorLoggedIn) tabName = 'doctor-auth';
             const views = ['student', 'doctor', 'doctor-auth', 'admin', 'stats', 'email', 'reports'];
             const viewToTab = { 'doctor-auth': 'doctor' };
@@ -3771,8 +3794,8 @@
 
         // الشعار = زر الرئيسية حسب الوضع
         function goHome() {
-            if (isAdminLoggedIn) { switchTab('admin'); return; }
             if (isDoctorLoggedIn) { switchTab('reports'); return; }
+            if (isAdminLoggedIn) { showToast('اضغط تبويب الأدمن لفتح لوحة الأدمن', 'info'); return; }
             switchTab('student');
         }
 
@@ -4667,8 +4690,8 @@
             const firstAuthEvent = !window.__authInit;
             window.__authInit = true;
             if (!prof) {
-                showToast('مرحباً — تم فتح لوحة الأدمن. لتفعيل شغلك كدكتور اقبل طلبك من اللوحة.', 'success');
-                switchTab('admin');
+                showToast('مرحباً — اضغط تبويب الأدمن لفتح لوحة الأدمن. لتفعيل شغلك كدكتور اقبل طلبك من اللوحة.', 'success');
+                window.__autoNav = true; try { switchTab('admin'); } finally { window.__autoNav = false; }
                 return;
             }
             await loadDoctorExams(user.uid);
@@ -4677,8 +4700,9 @@
             let last = null;
             try { last = localStorage.getItem('doctor_last_tab_v1'); } catch (e) {}
             const lastOk = (last === 'admin') ? asAdmin : ['doctor', 'stats', 'email', 'reports'].includes(last);
-            if (firstAuthEvent && !(sessionState && sessionState.active) && lastOk) switchTab(last);
-            else switchTab(asAdmin ? 'admin' : 'reports');
+            // v28.47: لوحة الأدمن (كلمة السر) ماتفتحش تلقائي أبداً، بس لما الأدمن يدوس تبويب الأدمن بنفسه
+            if (firstAuthEvent && !(sessionState && sessionState.active) && lastOk && last !== 'admin') switchTab(last);
+            else switchTab('reports');
             showToast(`أهلاً ${prof.name || 'بك'}`, 'success');
             doctorSyncKeys();
             getDoc(doc(fbDb, 'settings', 'doc_' + user.uid)).then(s => {
